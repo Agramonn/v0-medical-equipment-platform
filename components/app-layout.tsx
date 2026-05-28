@@ -191,7 +191,7 @@ function AppSidebar() {
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">BioSupp</span>
-                  <span className="text-xs text-muted-foreground">v2.4.1</span>
+                  <span className="text-xs text-muted-foreground">v0.0.1</span>
                 </div>
               </Link>
             </SidebarMenuButton>
