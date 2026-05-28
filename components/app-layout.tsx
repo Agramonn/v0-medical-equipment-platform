@@ -190,7 +190,7 @@ function AppSidebar() {
                   <Activity className="size-4" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">MedEquip Pro</span>
+                  <span className="font-semibold">BioSupp</span>
                   <span className="text-xs text-muted-foreground">v2.4.1</span>
                 </div>
               </Link>
