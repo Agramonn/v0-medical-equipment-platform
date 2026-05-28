@@ -785,7 +785,9 @@ export function InventoryContent() {
                           <Package className="size-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="font-medium">{equipment.name}</p>
+                          <Link href={`/equipment/${equipment.id}`} className="font-medium hover:text-primary hover:underline">
+                            {equipment.name}
+                          </Link>
                           <p className="text-xs text-muted-foreground">
                             {equipment.brand} {equipment.model}
                           </p>
@@ -818,9 +820,11 @@ export function InventoryContent() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 size-4" />
-                              View Details
+                            <DropdownMenuItem asChild>
+                              <Link href={`/equipment/${equipment.id}`}>
+                                <Eye className="mr-2 size-4" />
+                                View Workspace
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <FileText className="mr-2 size-4" />
@@ -860,7 +864,11 @@ export function InventoryContent() {
                   </div>
                   {getStatusBadge(equipment.status)}
                 </div>
-                <CardTitle className="text-base mt-3">{equipment.name}</CardTitle>
+                <CardTitle className="text-base mt-3">
+                  <Link href={`/equipment/${equipment.id}`} className="hover:text-primary hover:underline">
+                    {equipment.name}
+                  </Link>
+                </CardTitle>
                 <CardDescription>
                   {equipment.brand} {equipment.model}
                 </CardDescription>
@@ -884,7 +892,12 @@ export function InventoryContent() {
                   <span className="font-medium text-primary">{equipment.nextMaintenance}</span>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <EquipmentDetailDialog equipment={equipment} />
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/equipment/${equipment.id}`}>
+                      <Eye className="mr-2 size-4" />
+                      View
+                    </Link>
+                  </Button>
                   <Button variant="outline" size="sm" className="flex-1">
                     <FileText className="mr-2 size-4" />
                     Service Order
