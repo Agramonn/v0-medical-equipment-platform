@@ -425,9 +425,30 @@ function TopBar() {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = React.useState<UserRole>('supervisor')
+  const [isHydrated, setIsHydrated] = React.useState(false)
+
+  // Load role from localStorage on mount
+  React.useEffect(() => {
+    const savedRole = localStorage.getItem('medequip-role') as UserRole | null
+    if (savedRole && (savedRole === 'supervisor' || savedRole === 'engineer')) {
+      setRole(savedRole)
+    }
+    setIsHydrated(true)
+  }, [])
+
+  // Save role to localStorage when it changes
+  const handleSetRole = React.useCallback((newRole: UserRole) => {
+    setRole(newRole)
+    localStorage.setItem('medequip-role', newRole)
+  }, [])
+
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!isHydrated) {
+    return null
+  }
 
   return (
-    <RoleContext.Provider value={{ role, setRole }}>
+    <RoleContext.Provider value={{ role, setRole: handleSetRole }}>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
