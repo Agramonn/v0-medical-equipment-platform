@@ -212,12 +212,12 @@ export function EngineerDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:grid sm:grid-cols-5 sm:overflow-visible">
             {weeklySchedule.map((day) => (
               <div
                 key={day.day}
                 className={cn(
-                  'flex-shrink-0 flex flex-col items-center p-3 rounded-lg min-w-[64px] transition-colors',
+                  'flex flex-shrink-0 min-w-[64px] flex-col items-center rounded-lg p-3 transition-colors sm:min-w-0',
                   day.isToday 
                     ? 'bg-primary text-primary-foreground' 
                     : 'bg-muted/50 hover:bg-muted'
