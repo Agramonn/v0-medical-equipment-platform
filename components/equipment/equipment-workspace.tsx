@@ -427,10 +427,12 @@ function ManualsTab() {
 
 function ChatTab() {
   const [message, setMessage] = React.useState('')
-  const [messages, setMessages] = React.useState([
+  const [messages, setMessages] = React.useState<
+    { id: string; role: 'assistant' | 'user'; content: string; timestamp: string }[]
+  >([
     {
       id: '1',
-      role: 'assistant' as const,
+      role: 'assistant',
       content: 'Hello! I\'m your AI assistant for the Philips Trilogy Evo Ventilator. I have access to all technical documentation, service history, and troubleshooting guides. How can I help you today?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
@@ -441,7 +443,7 @@ function ChatTab() {
     
     setMessages(prev => [...prev, {
       id: String(Date.now()),
-      role: 'user' as const,
+      role: 'user',
       content: message,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }])
@@ -451,7 +453,7 @@ function ChatTab() {
     setTimeout(() => {
       setMessages(prev => [...prev, {
         id: String(Date.now()),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: 'I\'m analyzing your request using the technical documentation and service history for this equipment. Based on the information available, I can provide detailed guidance on troubleshooting, maintenance procedures, and error code diagnosis.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }])
