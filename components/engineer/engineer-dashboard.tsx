@@ -15,7 +15,6 @@ import {
   QrCode,
   Wifi,
   WifiOff,
-  Wrench,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -23,48 +22,30 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { serviceOrders, type ServiceOrder } from '@/lib/service-order-data'
+import { EngineerServicePanel } from './engineer-service-panel'
+import {
+  PriorityBadge,
+  StatusBadge,
+  TypeBadge,
+} from '@/components/service-orders/service-order-badges'
 
-// Mock data for today's services
-const todayServices = [
-  {
-    id: 'OS-2024-001',
-    equipment: 'Ventilator V-2847',
-    equipmentId: 'EQ-001',
-    hospital: 'Central Hospital',
-    area: 'ICU',
-    type: 'Corrective',
-    priority: 'high',
-    status: 'in-progress',
-    scheduledTime: '09:00 AM',
-    description: 'Oxygen sensor calibration error E-101',
-  },
-  {
-    id: 'OS-2024-002',
-    equipment: 'CT Scanner CT-4521',
-    equipmentId: 'EQ-005',
-    hospital: 'Central Hospital',
-    area: 'Radiology',
-    type: 'Preventive',
-    priority: 'medium',
-    status: 'pending',
-    scheduledTime: '11:30 AM',
-    description: 'Quarterly preventive maintenance',
-  },
-  {
-    id: 'OS-2024-003',
-    equipment: 'Defibrillator D-0892',
-    equipmentId: 'EQ-004',
-    hospital: 'Emergency Center',
-    area: 'Emergency',
-    type: 'Corrective',
-    priority: 'critical',
-    status: 'pending',
-    scheduledTime: '02:00 PM',
-    description: 'Battery not charging - urgent repair needed',
-  },
-]
+// Today's services: orders assigned to the signed-in engineer that are still
+// in an actionable state (sourced from the shared Service Order model).
+const CURRENT_ENGINEER = 'John Doe'
+
+const scheduledTimes: Record<string, string> = {
+  'OS-2024-001': '09:00 AM',
+  'OS-2024-004': '11:30 AM',
+  'OS-2024-007': '02:00 PM',
+}
+
+const todayServices = serviceOrders.filter(
+  (o) =>
+    o.assignedEngineer === CURRENT_ENGINEER &&
+    o.status !== 'closed',
+)
 
 const weeklySchedule = [
   { day: 'Mon', date: '26', services: 3, completed: 3 },
@@ -88,27 +69,15 @@ const quickActions = [
   { icon: Download, label: 'Offline', href: '/offline' },
 ]
 
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case 'critical':
-      return 'bg-destructive text-destructive-foreground'
-    case 'high':
-      return 'bg-warning text-warning-foreground'
-    case 'medium':
-      return 'bg-secondary text-secondary-foreground'
-    case 'low':
-      return 'bg-muted text-muted-foreground'
-    default:
-      return 'bg-muted text-muted-foreground'
-  }
-}
-
-function getStatusIcon(status: string) {
+function getStatusIcon(status: ServiceOrder['status']) {
   switch (status) {
     case 'completed':
       return <CheckCircle2 className="size-4 text-success" />
     case 'in-progress':
       return <Play className="size-4 text-primary" />
+    case 'pending-parts':
+    case 'pending-customer':
+      return <Clock className="size-4 text-warning" />
     default:
       return <Clock className="size-4 text-muted-foreground" />
   }
@@ -116,7 +85,14 @@ function getStatusIcon(status: string) {
 
 export function EngineerDashboard() {
   const [isOnline, setIsOnline] = React.useState(true)
-  
+  const [activeOrder, setActiveOrder] = React.useState<ServiceOrder | null>(null)
+  const [panelOpen, setPanelOpen] = React.useState(false)
+
+  function openPanel(order: ServiceOrder) {
+    setActiveOrder(order)
+    setPanelOpen(true)
+  }
+
   // Simulate online/offline status
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -255,48 +231,44 @@ export function EngineerDashboard() {
         <h2 className="text-lg font-semibold mb-4">Today&apos;s Services</h2>
         <div className="space-y-3">
           {todayServices.map((service) => (
-            <Link 
-              key={service.id} 
-              href={`/equipment/${service.equipmentId}`}
+            <Card
+              key={service.id}
+              className="hover:bg-accent/50 transition-colors cursor-pointer"
+              onClick={() => openPanel(service)}
             >
-              <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-center gap-1">
-                      {getStatusIcon(service.status)}
-                      <span className="text-xs text-muted-foreground">
-                        {service.scheduledTime}
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center gap-1">
+                    {getStatusIcon(service.status)}
+                    <span className="text-xs text-muted-foreground">
+                      {scheduledTimes[service.id] ?? service.scheduledDate}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{service.equipment.name}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <TypeBadge type={service.type} />
+                          <PriorityBadge priority={service.priority} />
+                          <StatusBadge status={service.status} />
+                        </div>
+                      </div>
+                      <ChevronRight className="size-5 text-muted-foreground flex-shrink-0" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <MapPin className="size-3" />
+                      <span className="truncate">
+                        {service.equipment.hospital} - {service.equipment.department}
                       </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{service.equipment}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {service.type}
-                            </Badge>
-                            <Badge className={cn('text-xs', getPriorityColor(service.priority))}>
-                              {service.priority}
-                            </Badge>
-                          </div>
-                        </div>
-                        <ChevronRight className="size-5 text-muted-foreground flex-shrink-0" />
-                      </div>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <MapPin className="size-3" />
-                        <span className="truncate">
-                          {service.hospital} - {service.area}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                        {service.description}
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                      {service.scope.objectives || service.type}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
@@ -336,6 +308,12 @@ export function EngineerDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <EngineerServicePanel
+        order={activeOrder}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+      />
     </div>
   )
 }
