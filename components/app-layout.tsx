@@ -355,14 +355,15 @@ function TopBar() {
   const { role } = useRole()
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <SidebarTrigger className="-ml-1" />
-      
+      <div className="h-5 w-px bg-border" aria-hidden="true" />
+
       <div className="flex flex-1 items-center gap-4">
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
-          className="relative flex h-9 max-w-md flex-1 items-center rounded-md border-0 bg-muted/50 pl-9 pr-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="group relative flex h-9 max-w-md flex-1 items-center rounded-lg border border-border/60 bg-muted/40 pl-9 pr-3 text-left text-sm text-muted-foreground shadow-xs transition-colors hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <span className="truncate">
@@ -370,8 +371,8 @@ function TopBar() {
               ? 'Search equipment, orders, history...'
               : 'Search equipment, services...'}
           </span>
-          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
-            <span className="text-xs">Cmd</span>K
+          <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-xs sm:flex">
+            <span className="text-xs">⌘</span>K
           </kbd>
         </button>
       </div>
@@ -473,7 +474,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <AppSidebar />
         <SidebarInset>
           <TopBar />
-          <main className="flex-1 overflow-auto p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
         </SidebarInset>
         <CommandPalette />
       </SidebarProvider>

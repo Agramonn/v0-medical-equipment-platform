@@ -256,7 +256,7 @@ export function DashboardContent() {
         {stats.map((stat) => (
           <Card
             key={stat.title}
-            className="group relative overflow-hidden transition-colors hover:border-primary/40"
+            className="group relative overflow-hidden shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
