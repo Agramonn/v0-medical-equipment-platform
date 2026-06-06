@@ -25,6 +25,21 @@ import { Separator } from '@/components/ui/separator'
 // Mock calendar data
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+type ServiceStatus = 'completed' | 'in-progress' | 'pending'
+type ServicePriority = 'critical' | 'high' | 'medium' | 'low'
+
+interface Service {
+  id: string
+  equipment: string
+  equipmentId: string
+  hospital: string
+  area: string
+  type: 'Preventive' | 'Corrective'
+  priority: ServicePriority
+  status: ServiceStatus
+  time: string
+}
+
 const generateWeekData = (weekOffset: number = 0) => {
   const baseDate = new Date()
   baseDate.setDate(baseDate.getDate() + (weekOffset * 7))
@@ -49,7 +64,7 @@ const generateWeekData = (weekOffset: number = 0) => {
   })
 }
 
-const servicesData: Record<string, typeof mockServices> = {
+const servicesData: Record<string, Service[]> = {
   '26': [
     {
       id: 'OS-2024-010',
@@ -281,8 +296,6 @@ const servicesData: Record<string, typeof mockServices> = {
     },
   ],
 }
-
-const mockServices = servicesData['27'] || []
 
 function getPriorityColor(priority: string) {
   switch (priority) {

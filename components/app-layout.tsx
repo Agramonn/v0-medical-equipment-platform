@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -57,15 +57,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CommandPalette } from '@/components/command-palette'
 
 // Role context
 type UserRole = 'supervisor' | 'engineer'
@@ -305,7 +305,6 @@ function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg" className="w-full">
                   <Avatar className="size-8">
-                    <AvatarImage src="/avatars/engineer.jpg" alt="Engineer" />
                     <AvatarFallback className="bg-primary/10 text-primary">
                       JD
                     </AvatarFallback>
@@ -360,19 +359,21 @@ function TopBar() {
       <SidebarTrigger className="-ml-1" />
       
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative max-w-md flex-1">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+          className="relative flex h-9 max-w-md flex-1 items-center rounded-md border-0 bg-muted/50 pl-9 pr-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={role === 'supervisor' 
-              ? "Search equipment, orders, history..." 
-              : "Search equipment, services..."
-            }
-            className="h-9 w-full pl-9 bg-muted/50 border-0 focus-visible:ring-1"
-          />
+          <span className="truncate">
+            {role === 'supervisor'
+              ? 'Search equipment, orders, history...'
+              : 'Search equipment, services...'}
+          </span>
           <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
             <span className="text-xs">Cmd</span>K
           </kbd>
-        </div>
+        </button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -424,6 +425,8 @@ function TopBar() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [role, setRole] = React.useState<UserRole>('supervisor')
   const [isHydrated, setIsHydrated] = React.useState(false)
 
@@ -436,11 +439,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsHydrated(true)
   }, [])
 
-  // Save role to localStorage when it changes
-  const handleSetRole = React.useCallback((newRole: UserRole) => {
-    setRole(newRole)
-    localStorage.setItem('medequip-role', newRole)
-  }, [])
+  // Guard: keep engineers out of supervisor-only routes (e.g. the dashboard)
+  React.useEffect(() => {
+    if (!isHydrated) return
+    const supervisorOnly = ['/', '/service-orders', '/history', '/contracts', '/organizations', '/settings']
+    if (role === 'engineer' && supervisorOnly.includes(pathname)) {
+      router.replace('/engineer')
+    }
+  }, [isHydrated, role, pathname, router])
+
+  // Save role to localStorage and navigate to the role's landing page
+  const handleSetRole = React.useCallback(
+    (newRole: UserRole) => {
+      setRole((prev) => {
+        if (prev !== newRole) {
+          localStorage.setItem('medequip-role', newRole)
+          router.push(newRole === 'engineer' ? '/engineer' : '/')
+        }
+        return newRole
+      })
+    },
+    [router],
+  )
 
   // Prevent hydration mismatch by not rendering until client-side
   if (!isHydrated) {
@@ -455,6 +475,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <TopBar />
           <main className="flex-1 overflow-auto p-6">{children}</main>
         </SidebarInset>
+        <CommandPalette />
       </SidebarProvider>
     </RoleContext.Provider>
   )
