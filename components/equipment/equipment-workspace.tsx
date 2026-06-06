@@ -15,6 +15,7 @@ import {
   History,
   Info,
   Package,
+  Stethoscope,
   Wifi,
   WifiOff,
 } from 'lucide-react'
@@ -37,6 +38,7 @@ import {
 
 import { equipmentData, statusConfig, type EquipmentStatus } from '@/lib/equipment-data'
 import { GeneralInfoTab } from './tabs/general-info-tab'
+import { ServiceActionsTab } from './tabs/service-actions-tab'
 import { ChecklistTab } from './tabs/checklist-tab'
 import { PartsTab } from './tabs/parts-tab'
 import { ManualsTab } from './tabs/manuals-tab'
@@ -45,6 +47,7 @@ import { HistoryTab } from './tabs/history-tab'
 
 const tabs = [
   { value: 'general', label: 'General', Icon: Info, Component: GeneralInfoTab },
+  { value: 'service', label: 'Service', Icon: Stethoscope, Component: ServiceActionsTab },
   { value: 'checklist', label: 'Checklist', Icon: Clipboard, Component: ChecklistTab },
   { value: 'parts', label: 'Parts', Icon: Package, Component: PartsTab },
   { value: 'manuals', label: 'Manuals', Icon: BookOpen, Component: ManualsTab },

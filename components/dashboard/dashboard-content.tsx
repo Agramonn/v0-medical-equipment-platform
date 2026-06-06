@@ -502,7 +502,7 @@ export function DashboardContent() {
               <CardDescription>Issues requiring immediate attention</CardDescription>
             </div>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/service-orders">
+              <Link href="/tickets">
                 View all
                 <ArrowRight className="ml-1 size-4" />
               </Link>

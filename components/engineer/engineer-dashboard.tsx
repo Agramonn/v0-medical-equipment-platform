@@ -12,6 +12,7 @@ import {
   MessageSquareText,
   Package,
   Play,
+  Plus,
   QrCode,
   Wifi,
   WifiOff,
@@ -25,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
 
 // Mock data for today's services
 const todayServices = [
@@ -166,6 +168,15 @@ export function EngineerDashboard() {
             <Download className="mr-2 size-4" />
             Sync Data
           </Button>
+          <CreateTicketDialog
+            requesterRole="Field Engineer"
+            trigger={
+              <Button size="sm">
+                <Plus className="mr-2 size-4" />
+                Report Issue
+              </Button>
+            }
+          />
         </div>
       </div>
 

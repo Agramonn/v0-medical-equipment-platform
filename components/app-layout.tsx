@@ -28,6 +28,7 @@ import {
   MapPin,
   Briefcase,
   CheckSquare,
+  Ticket as TicketIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
@@ -95,6 +96,12 @@ const supervisorNavItems = [
     href: '/inventory',
     icon: Package,
     badge: '2,847',
+  },
+  {
+    title: 'Tickets',
+    href: '/tickets',
+    icon: TicketIcon,
+    badge: '4',
   },
   {
     title: 'Service Orders',
@@ -443,7 +450,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Guard: keep engineers out of supervisor-only routes (e.g. the dashboard)
   React.useEffect(() => {
     if (!isHydrated) return
-    const supervisorOnly = ['/', '/service-orders', '/history', '/contracts', '/organizations', '/settings']
+    const supervisorOnly = ['/', '/service-orders', '/tickets', '/history', '/contracts', '/organizations', '/settings']
     if (role === 'engineer' && supervisorOnly.includes(pathname)) {
       router.replace('/engineer')
     }
