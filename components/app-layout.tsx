@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -423,6 +423,7 @@ function TopBar() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [role, setRole] = React.useState<UserRole>('supervisor')
   const [isHydrated, setIsHydrated] = React.useState(false)
 
@@ -435,11 +436,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsHydrated(true)
   }, [])
 
-  // Save role to localStorage when it changes
-  const handleSetRole = React.useCallback((newRole: UserRole) => {
-    setRole(newRole)
-    localStorage.setItem('medequip-role', newRole)
-  }, [])
+  // Save role to localStorage and navigate to the role's landing page
+  const handleSetRole = React.useCallback(
+    (newRole: UserRole) => {
+      setRole((prev) => {
+        if (prev !== newRole) {
+          localStorage.setItem('medequip-role', newRole)
+          router.push(newRole === 'engineer' ? '/engineer' : '/')
+        }
+        return newRole
+      })
+    },
+    [router],
+  )
 
   // Prevent hydration mismatch by not rendering until client-side
   if (!isHydrated) {
