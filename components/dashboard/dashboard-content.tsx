@@ -254,32 +254,37 @@ export function DashboardContent() {
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
+          <Card
+            key={stat.title}
+            className="group relative overflow-hidden transition-colors hover:border-primary/40"
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className={`rounded-lg p-2 ${stat.bgColor}`}>
+                <div
+                  className={`rounded-lg p-2 ${stat.bgColor} ring-1 ring-inset ring-border/50`}
+                >
                   <stat.icon className={`size-5 ${stat.color}`} />
                 </div>
-                <div className="flex items-center gap-1 text-sm">
+                <div
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    stat.trend === 'up'
+                      ? 'bg-success/10 text-success'
+                      : 'bg-destructive/10 text-destructive'
+                  }`}
+                >
                   {stat.trend === 'up' ? (
-                    <TrendingUp className="size-4 text-success" />
+                    <TrendingUp className="size-3.5" />
                   ) : (
-                    <TrendingDown className="size-4 text-destructive" />
+                    <TrendingDown className="size-3.5" />
                   )}
-                  <span
-                    className={
-                      stat.trend === 'up' ? 'text-success' : 'text-destructive'
-                    }
-                  >
-                    {stat.change}
-                  </span>
+                  <span>{stat.change}</span>
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-3xl font-semibold tracking-tight">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">
                   {stat.value}
                 </p>
-                <p className="text-sm text-muted-foreground">{stat.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{stat.title}</p>
               </div>
             </CardContent>
           </Card>
@@ -302,12 +307,12 @@ export function DashboardContent() {
                 <AreaChart data={serviceData}>
                   <defs>
                     <linearGradient id="preventive" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="corrective" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(0.55 0.22 25)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="oklch(0.55 0.22 25)" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -323,17 +328,21 @@ export function DashboardContent() {
                     tickLine={{ stroke: 'currentColor' }}
                   />
                   <Tooltip
+                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      borderColor: 'hsl(var(--border))',
+                      backgroundColor: 'var(--popover)',
+                      borderColor: 'var(--border)',
                       borderRadius: '8px',
+                      fontSize: '12px',
+                      boxShadow: '0 4px 12px oklch(0 0 0 / 0.15)',
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    labelStyle={{ color: 'var(--foreground)', fontWeight: 500 }}
+                    itemStyle={{ color: 'var(--muted-foreground)' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="preventive"
-                    stroke="oklch(0.55 0.18 250)"
+                    stroke="var(--chart-1)"
                     strokeWidth={2}
                     fill="url(#preventive)"
                     name="Preventive"
@@ -341,7 +350,7 @@ export function DashboardContent() {
                   <Area
                     type="monotone"
                     dataKey="corrective"
-                    stroke="oklch(0.55 0.22 25)"
+                    stroke="var(--chart-4)"
                     strokeWidth={2}
                     fill="url(#corrective)"
                     name="Corrective"
@@ -372,16 +381,20 @@ export function DashboardContent() {
                     width={80}
                   />
                   <Tooltip
+                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      borderColor: 'hsl(var(--border))',
+                      backgroundColor: 'var(--popover)',
+                      borderColor: 'var(--border)',
                       borderRadius: '8px',
+                      fontSize: '12px',
+                      boxShadow: '0 4px 12px oklch(0 0 0 / 0.15)',
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    labelStyle={{ color: 'var(--foreground)', fontWeight: 500 }}
+                    itemStyle={{ color: 'var(--muted-foreground)' }}
                   />
                   <Bar
                     dataKey="count"
-                    fill="oklch(0.55 0.18 250)"
+                    fill="var(--chart-1)"
                     radius={[0, 4, 4, 0]}
                     name="Equipment"
                   />
