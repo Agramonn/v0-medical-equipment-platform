@@ -93,7 +93,7 @@ export function EngineerServicePanel({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-hidden p-0 sm:max-w-lg">
-        <SheetHeader className="border-b p-6 pb-4">
+        <SheetHeader className="shrink-0 border-b p-6 pb-4">
           <SheetTitle className="flex items-center gap-2">
             <Wrench className="size-5" />
             {order.equipment.name}
@@ -106,7 +106,7 @@ export function EngineerServicePanel({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-210px)]">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="space-y-5 p-6">
             {/* Scope summary */}
             <Card>
@@ -272,7 +272,7 @@ export function EngineerServicePanel({
         </ScrollArea>
 
         {/* Engineer actions */}
-        <div className="border-t bg-muted/30 p-4">
+        <div className="shrink-0 border-t bg-muted/30 p-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Engineer Actions
           </p>
