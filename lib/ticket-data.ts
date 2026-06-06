@@ -20,12 +20,17 @@ export type TicketType =
   | 'inspection-request'
   | 'technical-support'
 
+// Ticket lifecycle (internal company workflow):
+//   new -> under-review -> approved -> assigned -> converted -> closed
+//   (any pre-conversion state can also be rejected)
 export type TicketStatus =
   | 'new'
   | 'under-review'
   | 'approved'
-  | 'rejected'
+  | 'assigned'
   | 'converted'
+  | 'closed'
+  | 'rejected'
 
 export type TicketPriority = 'critical' | 'high' | 'medium' | 'low'
 
