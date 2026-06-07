@@ -12,15 +12,17 @@ import {
   Phone,
   Plus,
   Search,
-  Settings2,
-  Trash2,
-  User,
   Users,
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -35,81 +37,47 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-// Mock organization data
-const organizations = [
-  {
-    id: 'ORG-001',
-    name: 'Central Hospital',
-    type: 'Hospital',
-    contractType: 'Full Service',
-    equipment: 438,
-    contacts: 12,
-    location: 'New York, NY',
-    phone: '+1 (555) 123-4567',
-    email: 'admin@centralhospital.com',
-    status: 'active',
-  },
-  {
-    id: 'ORG-002',
-    name: 'Regional Medical Center',
-    type: 'Hospital',
-    contractType: 'Full Service',
-    equipment: 616,
-    contacts: 18,
-    location: 'Los Angeles, CA',
-    phone: '+1 (555) 234-5678',
-    email: 'info@regionalmed.com',
-    status: 'active',
-  },
-  {
-    id: 'ORG-003',
-    name: 'City Clinic',
-    type: 'Clinic',
-    contractType: 'Preventive Only',
-    equipment: 291,
-    contacts: 6,
-    location: 'Chicago, IL',
-    phone: '+1 (555) 345-6789',
-    email: 'contact@cityclinic.com',
-    status: 'active',
-  },
-  {
-    id: 'ORG-004',
-    name: 'Emergency Center',
-    type: 'Emergency',
-    contractType: 'Full Service',
-    equipment: 275,
-    contacts: 8,
-    location: 'Houston, TX',
-    phone: '+1 (555) 456-7890',
-    email: 'ops@emergencycenter.com',
-    status: 'active',
-  },
-]
+import {
+  customerOrganizations,
+  customerTypeConfig,
+  contracts,
+  getPmPlansForContract,
+} from '@/lib/contract-data'
 
-const contacts = [
-  { name: 'Dr. Sarah Johnson', role: 'Chief Medical Officer', org: 'Central Hospital', email: 'sjohnson@centralhospital.com', phone: '+1 (555) 111-1111' },
-  { name: 'Mike Chen', role: 'Biomedical Director', org: 'Regional Medical Center', email: 'mchen@regionalmed.com', phone: '+1 (555) 222-2222' },
-  { name: 'Emily Davis', role: 'Operations Manager', org: 'City Clinic', email: 'edavis@cityclinic.com', phone: '+1 (555) 333-3333' },
-  { name: 'James Wilson', role: 'Technical Lead', org: 'Emergency Center', email: 'jwilson@emergencycenter.com', phone: '+1 (555) 444-4444' },
-]
+// Flatten contacts across organizations for the Contacts tab.
+const allContacts = customerOrganizations.flatMap((org) =>
+  org.contacts.map((c) => ({ ...c, org: org.name })),
+)
+
+const activeContractCount = contracts.filter((c) => c.status !== 'expired').length
 
 export function OrganizationsContent() {
+  const [search, setSearch] = React.useState('')
+
+  const filteredOrgs = customerOrganizations.filter(
+    (org) =>
+      !search ||
+      org.name.toLowerCase().includes(search.toLowerCase()) ||
+      org.type.toLowerCase().includes(search.toLowerCase()),
+  )
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">Organizations</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
+            Customer Organizations
+          </h1>
           <p className="text-muted-foreground">
-            Manage hospitals, clinics, and service contracts
+            Hospitals, clinics, government and distributors that hold service
+            contracts.
           </p>
         </div>
         <Button>
@@ -127,7 +95,9 @@ export function OrganizationsContent() {
                 <Building2 className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{organizations.length}</p>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {customerOrganizations.length}
+                </p>
                 <p className="text-xs text-muted-foreground">Organizations</p>
               </div>
             </div>
@@ -140,7 +110,9 @@ export function OrganizationsContent() {
                 <FileText className="size-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">12</p>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {activeContractCount}
+                </p>
                 <p className="text-xs text-muted-foreground">Active Contracts</p>
               </div>
             </div>
@@ -153,7 +125,9 @@ export function OrganizationsContent() {
                 <Users className="size-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{contacts.length}</p>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {allContacts.length}
+                </p>
                 <p className="text-xs text-muted-foreground">Contacts</p>
               </div>
             </div>
@@ -166,8 +140,10 @@ export function OrganizationsContent() {
                 <Globe className="size-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">4</p>
-                <p className="text-xs text-muted-foreground">Regions</p>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {new Set(customerOrganizations.map((o) => o.type)).size}
+                </p>
+                <p className="text-xs text-muted-foreground">Customer Types</p>
               </div>
             </div>
           </CardContent>
@@ -182,60 +158,85 @@ export function OrganizationsContent() {
         </TabsList>
 
         <TabsContent value="organizations" className="space-y-4">
-          {/* Search */}
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search organizations..." className="pl-9" />
+              <Input
+                placeholder="Search organizations..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Organizations Grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {organizations.map((org) => (
-              <Card key={org.id} className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
-                        <Building2 className="size-6 text-primary" />
+            {filteredOrgs.map((org) => {
+              const typeMeta = customerTypeConfig[org.type]
+              const orgContracts = contracts.filter((c) => c.customerId === org.id)
+              return (
+                <Card
+                  key={org.id}
+                  className="cursor-pointer transition-colors hover:border-primary/50"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
+                          <Building2 className="size-6 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{org.name}</CardTitle>
+                          <CardDescription>
+                            <Badge className={typeMeta.className}>
+                              {typeMeta.label}
+                            </Badge>
+                          </CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-base">{org.name}</CardTitle>
-                        <CardDescription>{org.type}</CardDescription>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="size-4" />
-                    <span>{org.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="size-4" />
-                    <span>{org.phone}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2">
-                    <Badge variant="secondary">{org.contractType}</Badge>
-                    <span className="text-sm text-muted-foreground">{org.equipment} equipment</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="size-4 shrink-0" />
+                      <span>
+                        {org.address}, {org.city}
+                      </span>
+                    </div>
+                    {org.contacts[0] && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="size-4 shrink-0" />
+                        <span>{org.contacts[0].phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between border-t pt-3">
+                      <span className="text-sm text-muted-foreground">
+                        {orgContracts.length} contract
+                        {orgContracts.length === 1 ? '' : 's'}
+                      </span>
+                      <span className="text-sm font-medium tabular-nums">
+                        {org.equipmentCount} equipment
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </TabsContent>
 
@@ -250,17 +251,20 @@ export function OrganizationsContent() {
                     <TableHead>Organization</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
-                    <TableRow key={contact.email}>
+                  {allContacts.map((contact) => (
+                    <TableRow key={contact.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback className="bg-primary/10 text-primary">
-                              {contact.name.split(' ').map(n => n[0]).join('')}
+                              {contact.name
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{contact.name}</span>
@@ -268,12 +272,14 @@ export function OrganizationsContent() {
                       </TableCell>
                       <TableCell>{contact.role}</TableCell>
                       <TableCell>{contact.org}</TableCell>
-                      <TableCell>{contact.email}</TableCell>
-                      <TableCell>{contact.phone}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="size-4" />
-                        </Button>
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <Mail className="size-3.5" />
+                          {contact.email}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {contact.phone}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -287,30 +293,41 @@ export function OrganizationsContent() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Service Contracts</CardTitle>
-              <CardDescription>Active contracts and SLA agreements</CardDescription>
+              <CardDescription>
+                Contracts define the maintenance obligations for each customer.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {organizations.map((org) => (
-                  <div key={org.id} className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-4">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Building2 className="size-5 text-primary" />
+              <div className="space-y-3">
+                {contracts.map((contract) => {
+                  const planCount = getPmPlansForContract(contract.id).length
+                  return (
+                    <div
+                      key={contract.id}
+                      className="flex items-center justify-between rounded-lg border p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+                          <FileText className="size-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{contract.customerName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {contract.contractNumber} · {planCount} PM plan
+                            {planCount === 1 ? '' : 's'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{org.name}</p>
-                        <p className="text-sm text-muted-foreground">{org.equipment} equipment covered</p>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline">{contract.coverageType}</Badge>
+                        <Button variant="ghost" size="sm">
+                          View
+                          <ChevronRight className="ml-1 size-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Badge>{org.contractType}</Badge>
-                      <Button variant="ghost" size="sm">
-                        View Contract
-                        <ChevronRight className="ml-1 size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

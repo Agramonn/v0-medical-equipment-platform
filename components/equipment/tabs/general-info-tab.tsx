@@ -44,6 +44,7 @@ import {
   type RecentActivity,
   type AiRecommendation,
 } from '@/lib/equipment-data'
+import { ContractSummary } from '@/components/equipment/contract-summary'
 
 function InfoField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -219,36 +220,39 @@ export function GeneralInfoTab() {
           </CardContent>
         </Card>
 
-        {/* Recent activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
-            <CardDescription>Corrective, preventive & calibration</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentActivity.map((item) => {
-              const { Icon, className } = activityIcon(item.type)
-              return (
-                <div key={item.id} className="flex items-start gap-3">
-                  <div className={cn('rounded-lg p-2', className)}>
-                    <Icon className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {item.type}
-                      </Badge>
+        {/* Recent activity + contract summary */}
+        <div className="space-y-6">
+          <ContractSummary equipmentId={equipmentData.contractEquipmentId} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent Activity</CardTitle>
+              <CardDescription>Corrective, preventive & calibration</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recentActivity.map((item) => {
+                const { Icon, className } = activityIcon(item.type)
+                return (
+                  <div key={item.id} className="flex items-start gap-3">
+                    <div className={cn('rounded-lg p-2', className)}>
+                      <Icon className="size-4" />
                     </div>
-                    <p className="mt-1 text-sm font-medium leading-snug">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.date} · {item.engineer}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">
+                          {item.type}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm font-medium leading-snug">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.date} · {item.engineer}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
+                )
+              })}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* AI recommendations */}
