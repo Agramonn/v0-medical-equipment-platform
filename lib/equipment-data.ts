@@ -25,6 +25,8 @@ export interface EquipmentRecord {
     type: string
   }
   contractType: string
+  // Links the equipment to its maintenance-obligation source of truth.
+  contractEquipmentId: string
   status: EquipmentStatus
   lastService: string
   nextService: string
@@ -50,6 +52,9 @@ export const equipmentData: EquipmentRecord = {
     expiresOn: '2026-02-18',
     type: 'Extended (4 years)',
   },
+  // Equipment id used to look up contract coverage, warranties and PM plans
+  // in lib/contract-data.ts (the maintenance obligation source of truth).
+  contractEquipmentId: 'EQ-001',
   contractType: 'Full Service',
   status: 'operational',
   lastService: '2024-01-15',

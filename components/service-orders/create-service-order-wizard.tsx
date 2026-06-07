@@ -214,7 +214,7 @@ export function CreateServiceOrderWizard({
 
         <Separator />
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="-mr-2 min-h-0 flex-1 pr-4">
           {/* Step 1 - Equipment */}
           {step === 0 && (
             <div className="space-y-4 p-1">
@@ -509,7 +509,7 @@ export function CreateServiceOrderWizard({
 
         <Separator />
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <div className="flex w-full items-center justify-between">
             <Button
               variant="outline"

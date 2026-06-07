@@ -348,9 +348,15 @@ export interface ServiceOrder {
   // NOT implemented yet. When the module lands, `ticketId` will reference a
   // record in a future `tickets` table / module.
   ticketId?: string | null
-  // Origin of the order. Today everything is created manually by a supervisor.
-  // Later, orders may originate from a customer ticket.
-  origin: 'manual' | 'ticket'
+  // Origin of the order:
+  //  - 'manual'  : created by a supervisor (today's default)
+  //  - 'ticket'  : (future) spawned from a customer ticket
+  //  - 'pm-plan' : (future) auto-generated from a Preventive Maintenance Plan.
+  //                PM Plans originate from contracts — see lib/contract-data.ts.
+  //                Generation is prepared but NOT implemented yet.
+  origin: 'manual' | 'ticket' | 'pm-plan'
+  // When origin === 'pm-plan', the PM Plan that generated this order.
+  pmPlanId?: string | null
 }
 
 // ---------------------------------------------------------------------------
