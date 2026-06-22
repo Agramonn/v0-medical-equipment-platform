@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  state     String
+  country   String   @default("México")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  equipment     Equipment[]
+  serviceOrders ServiceOrder[]
+}
+
+model Equipment {
+  id              String          @id @default(cuid())
+  name            String
+  category        String
+  manufacturer    String
+  model           String
+  serialNumber    String          @unique
+  assetNumber     String          @unique
+  department      String
+  location        String
+  status          EquipmentStatus @default(OPERATIONAL)
+  installDate     DateTime
+  purchaseDate    DateTime
+  nextServiceDate DateTime?
+  lastServiceDate DateTime?
+  hoursUsed       Int             @default(0)
+  maxHours        Int             @default(0)
+  contractType    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  serviceOrders  ServiceOrder[]
+  serviceHistory ServiceHistory[]
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+  NEEDS_ATTENTION
+}
+
+model ServiceOrder {
+  id          String             @id @default(cuid())
+  orderNumber String             @unique @default(cuid())
+  type        ServiceOrderType
+  status      ServiceOrderStatus @default(DRAFT)
+  priority    Priority           @default(MEDIUM)
+  title       String
+  description String?
+
+  // Scheduling
+  scheduledAt     DateTime?
+  estimatedHours  Float?
+  serviceLocation String?
+  completedAt     DateTime?
+  closedAt        DateTime?
+
+  // Scope of Work (Step 3 of the creation wizard)
+  objectives         String?
+  activities         String?
+  requiredTools      String[]
+  requiredParts      String[]
+  safetyRequirements String?
+  customerNotes      String?
+  checklist          Json?
+
+  // Completion requirements (Step 4 of the wizard)
+  requirements Json?
+
+  // Documentation / evidence (filled by engineer during execution)
+  findings           String?
+  rootCause          String?
+  correctiveActions  String?
+  recommendations    String?
+  laborHours         Float?
+  partsUsed          Json?
+  measurements       Json?
+  engineerSignedName String?
+  engineerSignedAt   DateTime?
+  customerSignedName String?
+  customerSignedAt   DateTime?
+
+  origin ServiceOrderOrigin @default(MANUAL)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  equipmentId    String
+  equipment      Equipment    @relation(fields: [equipmentId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  assignedToId   String?
+  assignedTo     User?        @relation(fields: [assignedToId], references: [id])
+  createdById    String
+  createdBy      User         @relation("ServiceOrderCreatedBy", fields: [createdById], references: [id])
+
+  serviceHistory ServiceHistory?
+  timelineEvents ServiceOrderTimelineEvent[]
+}
+
+enum ServiceOrderType {
+  PREVENTIVE_MAINTENANCE
+  CORRECTIVE_MAINTENANCE
+  CALIBRATION
+  INSPECTION
+  INSTALLATION
+}
+
+enum ServiceOrderStatus {
+  DRAFT
+  ASSIGNED
+  IN_PROGRESS
+  PENDING_PARTS
+  PENDING_CUSTOMER
+  COMPLETED
+  PENDING_SIGNATURE
+  CLOSED
+}
+
+enum ServiceOrderOrigin {
+  MANUAL
+  TICKET
+  PM_PLAN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ServiceOrderTimelineEvent {
+  id        String       @id @default(cuid())
+  label     String
+  role      TimelineRole
+  note      String?
+  createdAt DateTime     @default(now())
+
+  serviceOrderId String
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  byUserId       String?
+  byUser         User?        @relation(fields: [byUserId], references: [id])
+}
+
+enum TimelineRole {
+  SUPERVISOR
+  ENGINEER
+  SYSTEM
+  CUSTOMER
+}
+
+model ServiceHistory {
+  id            String           @id @default(cuid())
+  type          ServiceOrderType @default(CORRECTIVE_MAINTENANCE)
+  date          DateTime
+  summary       String
+  detail        String?
+  partsReplaced String[]
+  serviceTime   Float?
+  findings      String?
+  createdAt     DateTime         @default(now())
+
+  equipmentId    String
+  equipment      Equipment     @relation(fields: [equipmentId], references: [id])
+  engineerId     String
+  engineer       User          @relation(fields: [engineerId], references: [id])
+  serviceOrderId String?       @unique
+  serviceOrder   ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      UserRole @default(ENGINEER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedOrders ServiceOrder[]
+  createdOrders  ServiceOrder[]               @relation("ServiceOrderCreatedBy")
+  timelineEvents ServiceOrderTimelineEvent[]
+  serviceHistory ServiceHistory[]
+}
+
+enum UserRole {
+  SUPERVISOR
+  ENGINEER
+}
