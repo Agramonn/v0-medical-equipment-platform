@@ -8,9 +8,18 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+<<<<<<< HEAD
+=======
+.env
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
 .vercel
+<<<<<<< HEAD
+=======
+
+/lib/generated/prisma
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

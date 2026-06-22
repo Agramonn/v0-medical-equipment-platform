@@ -1,5 +1,6 @@
 'use client'
 
+<<<<<<< HEAD
 import {
   CalendarClock,
   FileText,
@@ -10,6 +11,10 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+=======
+import { FileText } from 'lucide-react'
+
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
 import {
   Card,
   CardContent,
@@ -17,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+<<<<<<< HEAD
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -97,6 +103,12 @@ export function ContractSummary({ equipmentId }: { equipmentId: string }) {
     .filter((p) => p.planType === 'Preventive Maintenance')
     .sort((a, b) => daysUntil(a.nextDueDate) - daysUntil(b.nextDueDate))[0]
 
+=======
+
+// TODO: Connect to real Contract/PMPlan/Warranty models once the
+// Contracts module is built (Phase: Contracts Management).
+export function ContractSummary({ contractType }: { contractType: string | null }) {
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   return (
     <Card>
       <CardHeader>
@@ -110,6 +122,7 @@ export function ContractSummary({ equipmentId }: { equipmentId: string }) {
           </div>
         </div>
       </CardHeader>
+<<<<<<< HEAD
       <CardContent className="space-y-4">
         {coverage ? (
           <>
@@ -211,8 +224,22 @@ export function ContractSummary({ equipmentId }: { equipmentId: string }) {
           {!warranty?.manufacturer && !warranty?.company && (
             <p className="text-sm text-muted-foreground">No warranty on record.</p>
           )}
+=======
+      <CardContent>
+        <div className="rounded-lg border border-dashed p-4 text-center">
+          <p className="text-sm font-medium">
+            {contractType ?? 'No contract on record'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Detailed contract tracking is coming soon.
+          </p>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         </div>
       </CardContent>
     </Card>
   )
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

@@ -1,5 +1,9 @@
 'use client'
 
+<<<<<<< HEAD
+=======
+import { EquipmentWithOrganization } from '@/lib/types'
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
 import * as React from 'react'
 import Link from 'next/link'
 import {
@@ -69,6 +73,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
+<<<<<<< HEAD
 
 // Mock equipment data
 const equipmentData = [
@@ -227,19 +232,35 @@ const equipmentData = [
 function getStatusBadge(status: string) {
   switch (status) {
     case 'operational':
+=======
+import { AddEquipmentDialog } from './add-equipment-dialog'
+import { DeleteEquipmentButton } from './delete-equipment-button'
+import { EditEquipmentDialog } from './edit-equipment-dialog'
+import { QrCodeDialog } from './qr-code-dialog'
+
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'OPERATIONAL':
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       return (
         <Badge className="bg-success/10 text-success hover:bg-success/20">
           <CheckCircle2 className="mr-1 size-3" />
           Operational
         </Badge>
       )
+<<<<<<< HEAD
     case 'maintenance':
+=======
+    case 'MAINTENANCE':
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       return (
         <Badge className="bg-warning/10 text-warning hover:bg-warning/20">
           <Wrench className="mr-1 size-3" />
           Maintenance
         </Badge>
       )
+<<<<<<< HEAD
     case 'critical':
       return (
         <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
@@ -248,6 +269,16 @@ function getStatusBadge(status: string) {
         </Badge>
       )
     case 'out-of-service':
+=======
+    case 'NEEDS_ATTENTION':
+      return (
+        <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
+          <AlertTriangle className="mr-1 size-3" />
+          Needs Attention
+        </Badge>
+      )
+    case 'OUT_OF_SERVICE':
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       return (
         <Badge className="bg-muted text-muted-foreground hover:bg-muted/80">
           <XCircle className="mr-1 size-3" />
@@ -272,7 +303,11 @@ function getContractBadge(type: string) {
   }
 }
 
+<<<<<<< HEAD
 function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[0] }) {
+=======
+function EquipmentDetailDialog({ equipment }: { equipment: EquipmentWithOrganization }) {
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -288,11 +323,16 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
             {equipment.name}
           </DialogTitle>
           <DialogDescription>
+<<<<<<< HEAD
             {equipment.brand} {equipment.model} • {equipment.serialNumber}
+=======
+            {equipment.manufacturer} {equipment.model} • {equipment.serialNumber}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-120px)]">
           <Tabs defaultValue="general" className="w-full">
+<<<<<<< HEAD
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
@@ -333,11 +373,50 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
                       <span className="text-sm text-muted-foreground">Installation Date</span>
                       <span className="text-sm font-medium">{equipment.installDate}</span>
                     </div>
+=======
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-4 pt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Equipment Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-0">
+                    <dl className="divide-y divide-border">
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Asset No.</dt>
+                        <dd className="text-sm font-mono font-medium text-right">{equipment.assetNumber}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Manufacturer</dt>
+                        <dd className="text-sm font-medium text-right">{equipment.manufacturer}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Model</dt>
+                        <dd className="text-sm font-medium text-right">{equipment.model}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Serial No.</dt>
+                        <dd className="text-sm font-mono font-medium text-right">{equipment.serialNumber}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Category</dt>
+                        <dd className="text-sm font-medium text-right">{equipment.category}</dd>
+                      </div>
+                    </dl>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-3">
+<<<<<<< HEAD
                     <CardTitle className="text-sm font-medium">Location & Contract</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -367,10 +446,53 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium">Usage & Maintenance</CardTitle>
+=======
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Location & Contract
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-0">
+                    <dl className="divide-y divide-border">
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Hospital</dt>
+                        <dd className="text-sm font-medium text-right">{equipment.organization.name}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">City</dt>
+                        <dd className="text-sm font-medium text-right">
+                          {equipment.organization.city}, {equipment.organization.state}
+                        </dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Department</dt>
+                        <dd className="text-sm font-medium text-right">{equipment.department}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Contract</dt>
+                        <dd className="text-right">{getContractBadge(equipment.contractType ?? 'No Contract')}</dd>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
+                        <dt className="text-sm text-muted-foreground">Status</dt>
+                        <dd className="text-right">{getStatusBadge(equipment.status)}</dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="maintenance" className="space-y-4 pt-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Usage & Maintenance
+                  </CardTitle>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-6 sm:grid-cols-3">
                     <div className="space-y-2">
+<<<<<<< HEAD
                       <p className="text-sm text-muted-foreground">Hours Used</p>
                       <p className="text-2xl font-semibold">{equipment.hoursUsed.toLocaleString()}</p>
                       <Progress value={(equipment.hoursUsed / 15000) * 100} className="h-2" />
@@ -385,10 +507,43 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
                       <p className="text-sm text-muted-foreground">Next Maintenance</p>
                       <p className="text-2xl font-semibold text-primary">{equipment.nextMaintenance}</p>
                       <p className="text-xs text-muted-foreground">Scheduled preventive</p>
+=======
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Hours Used
+                      </p>
+                      <p className="text-2xl font-semibold">{equipment.hoursUsed.toLocaleString()}</p>
+                      <Progress value={(equipment.hoursUsed / equipment.maxHours) * 100} className="h-1.5" />
+                      <p className="text-xs text-muted-foreground">
+                        of {equipment.maxHours.toLocaleString()} hours
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Last Service
+                      </p>
+                      <p className="text-2xl font-semibold">
+                        {equipment.lastServiceDate
+                          ? equipment.lastServiceDate.toLocaleDateString('en-US')
+                          : '—'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Maintenance completed</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Next Service
+                      </p>
+                      <p className="text-2xl font-semibold text-primary">
+                        {equipment.nextServiceDate
+                          ? equipment.nextServiceDate.toLocaleDateString('en-US')
+                          : '—'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Scheduled</p>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                     </div>
                   </div>
                 </CardContent>
               </Card>
+<<<<<<< HEAD
             </TabsContent>
 
             <TabsContent value="history" className="pt-4">
@@ -550,6 +705,23 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
                       </div>
                     ))}
                   </div>
+=======
+
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="flex items-center justify-between p-4">
+                  <div>
+                    <p className="text-sm font-medium">Need more details?</p>
+                    <p className="text-xs text-muted-foreground">
+                      History, manuals, checklist and AI chat in the full workspace
+                    </p>
+                  </div>
+                  <Button asChild>
+                    <Link href={`/equipment/${equipment.id}`}>
+                      <Eye className="mr-2 size-4" />
+                      Open Workspace
+                    </Link>
+                  </Button>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </CardContent>
               </Card>
             </TabsContent>
@@ -560,15 +732,51 @@ function EquipmentDetailDialog({ equipment }: { equipment: typeof equipmentData[
   )
 }
 
+<<<<<<< HEAD
 export function InventoryContent() {
+=======
+export function InventoryContent({
+  equipment,
+  organizations,
+}: {
+  equipment: EquipmentWithOrganization[]
+  organizations: { id: string; name: string }[]
+}) {
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   const [selectedItems, setSelectedItems] = React.useState<string[]>([])
   const [viewMode, setViewMode] = React.useState<'table' | 'cards'>('table')
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [hospitalFilter, setHospitalFilter] = React.useState<string>('all')
+<<<<<<< HEAD
 
   const filteredData = equipmentData.filter((item) => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false
     if (hospitalFilter !== 'all' && item.hospital !== hospitalFilter) return false
+=======
+  const [searchQuery, setSearchQuery] = React.useState<string>('')
+  const [editingEquipment, setEditingEquipment] = React.useState<EquipmentWithOrganization | null>(null)
+  const [qrEquipment, setQrEquipment] = React.useState<EquipmentWithOrganization | null>(null)
+
+  const hospitals = React.useMemo(() => {
+    const unique = new Map<string, string>()
+    equipment.forEach((eq) => unique.set(eq.organization.id, eq.organization.name))
+    return Array.from(unique.entries())
+  }, [equipment])
+
+  const filteredData = equipment.filter((item) => {
+    if (statusFilter !== 'all' && item.status !== statusFilter) return false
+    if (hospitalFilter !== 'all' && item.organization.id !== hospitalFilter) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.manufacturer.toLowerCase().includes(q) ||
+        item.model.toLowerCase().includes(q) ||
+        item.serialNumber.toLowerCase().includes(q) ||
+        item.organization.name.toLowerCase().includes(q)
+      )
+    }
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
     return true
   })
 
@@ -589,11 +797,19 @@ export function InventoryContent() {
   }
 
   const stats = {
+<<<<<<< HEAD
     total: equipmentData.length,
     operational: equipmentData.filter((e) => e.status === 'operational').length,
     maintenance: equipmentData.filter((e) => e.status === 'maintenance').length,
     critical: equipmentData.filter((e) => e.status === 'critical').length,
     outOfService: equipmentData.filter((e) => e.status === 'out-of-service').length,
+=======
+    total: equipment.length,
+    operational: equipment.filter((e) => e.status === 'OPERATIONAL').length,
+    maintenance: equipment.filter((e) => e.status === 'MAINTENANCE').length,
+    critical: equipment.filter((e) => e.status === 'NEEDS_ATTENTION').length,
+    outOfService: equipment.filter((e) => e.status === 'OUT_OF_SERVICE').length,
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   }
 
   return (
@@ -615,10 +831,14 @@ export function InventoryContent() {
             <Download className="mr-2 size-4" />
             Export
           </Button>
+<<<<<<< HEAD
           <Button size="sm">
             <Plus className="mr-2 size-4" />
             Add Equipment
           </Button>
+=======
+          <AddEquipmentDialog organizations={organizations} />
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         </div>
       </div>
 
@@ -637,7 +857,11 @@ export function InventoryContent() {
             </div>
           </CardContent>
         </Card>
+<<<<<<< HEAD
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('operational')}>
+=======
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('OPERATIONAL')}>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-success/10 p-2">
@@ -650,7 +874,11 @@ export function InventoryContent() {
             </div>
           </CardContent>
         </Card>
+<<<<<<< HEAD
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('maintenance')}>
+=======
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('MAINTENANCE')}>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-warning/10 p-2">
@@ -663,7 +891,11 @@ export function InventoryContent() {
             </div>
           </CardContent>
         </Card>
+<<<<<<< HEAD
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('critical')}>
+=======
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('NEEDS_ATTENTION')}>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-destructive/10 p-2">
@@ -676,7 +908,11 @@ export function InventoryContent() {
             </div>
           </CardContent>
         </Card>
+<<<<<<< HEAD
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('out-of-service')}>
+=======
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setStatusFilter('OUT_OF_SERVICE')}>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-muted p-2">
@@ -698,7 +934,16 @@ export function InventoryContent() {
             <div className="flex flex-1 items-center gap-2">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+<<<<<<< HEAD
                 <Input placeholder="Search equipment..." className="pl-9" />
+=======
+                <Input
+                  placeholder="Search equipment..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[150px]">
@@ -706,6 +951,7 @@ export function InventoryContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
+<<<<<<< HEAD
                   <SelectItem value="operational">Operational</SelectItem>
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                   <SelectItem value="critical">Critical</SelectItem>
@@ -714,14 +960,30 @@ export function InventoryContent() {
               </Select>
               <Select value={hospitalFilter} onValueChange={setHospitalFilter}>
                 <SelectTrigger className="w-[180px]">
+=======
+                  <SelectItem value="OPERATIONAL">Operational</SelectItem>
+                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                  <SelectItem value="NEEDS_ATTENTION">Critical</SelectItem>
+                  <SelectItem value="OUT_OF_SERVICE">Out of Service</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={hospitalFilter} onValueChange={setHospitalFilter}>
+                <SelectTrigger className="w-[200px]">
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                   <SelectValue placeholder="Hospital" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Hospitals</SelectItem>
+<<<<<<< HEAD
                   <SelectItem value="Central Hospital">Central Hospital</SelectItem>
                   <SelectItem value="Regional Medical Center">Regional Medical Center</SelectItem>
                   <SelectItem value="City Clinic">City Clinic</SelectItem>
                   <SelectItem value="Emergency Center">Emergency Center</SelectItem>
+=======
+                  {hospitals.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon">
@@ -789,13 +1051,18 @@ export function InventoryContent() {
                             {equipment.name}
                           </Link>
                           <p className="text-xs text-muted-foreground">
+<<<<<<< HEAD
                             {equipment.brand} {equipment.model}
+=======
+                            {equipment.manufacturer} {equipment.model}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
+<<<<<<< HEAD
                         <p className="text-sm">{equipment.hospital}</p>
                         <p className="text-xs text-muted-foreground">{equipment.area}</p>
                       </div>
@@ -807,6 +1074,23 @@ export function InventoryContent() {
                     </TableCell>
                     <TableCell>
                       <p className="text-sm font-medium text-primary">{equipment.nextMaintenance}</p>
+=======
+                        <p className="text-sm">{equipment.organization.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {equipment.organization.city}, {equipment.organization.state}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(equipment.status)}</TableCell>
+                    <TableCell>{getContractBadge(equipment.contractType ?? 'No Contract')}</TableCell>
+                    <TableCell>
+                      <p className="text-sm">{equipment.lastServiceDate?.toLocaleDateString('en-US') ?? '—'}</p>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm font-medium text-primary">
+                        {equipment.nextServiceDate?.toLocaleDateString('en-US') ?? '—'}
+                      </p>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -830,18 +1114,37 @@ export function InventoryContent() {
                               <FileText className="mr-2 size-4" />
                               Create Service Order
                             </DropdownMenuItem>
+<<<<<<< HEAD
                             <DropdownMenuItem>
                               <QrCode className="mr-2 size-4" />
                               Generate QR Code
                             </DropdownMenuItem>
                             <DropdownMenuItem>
+=======
+                            <DropdownMenuItem onClick={() => setQrEquipment(equipment)}>
+                              <QrCode className="mr-2 size-4" />
+                              Generate QR Code
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingEquipment(equipment)}>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                               <Settings2 className="mr-2 size-4" />
                               Edit Equipment
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+<<<<<<< HEAD
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="mr-2 size-4" />
                               Delete
+=======
+                            <DropdownMenuItem
+                              className="text-destructive p-0"
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              <DeleteEquipmentButton
+                                equipmentId={equipment.id}
+                                equipmentName={equipment.name}
+                              />
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -870,11 +1173,16 @@ export function InventoryContent() {
                   </Link>
                 </CardTitle>
                 <CardDescription>
+<<<<<<< HEAD
                   {equipment.brand} {equipment.model}
+=======
+                  {equipment.manufacturer} {equipment.model}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
+<<<<<<< HEAD
                   <span className="text-muted-foreground">Location</span>
                   <span>{equipment.hospital}</span>
                 </div>
@@ -885,11 +1193,29 @@ export function InventoryContent() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Contract</span>
                   {getContractBadge(equipment.contractType)}
+=======
+                  <span className="text-muted-foreground">Hospital</span>
+                  <span>{equipment.organization.name}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Department</span>
+                  <span>{equipment.department || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Contract</span>
+                  {getContractBadge(equipment.contractType ?? 'No Contract')}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Next Service</span>
+<<<<<<< HEAD
                   <span className="font-medium text-primary">{equipment.nextMaintenance}</span>
+=======
+                  <span className="font-medium text-primary">
+                    {equipment.nextServiceDate?.toLocaleDateString('en-US') ?? '—'}
+                  </span>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" asChild>
@@ -912,7 +1238,11 @@ export function InventoryContent() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
+<<<<<<< HEAD
           Showing {filteredData.length} of {equipmentData.length} equipment
+=======
+          Showing {filteredData.length} of {equipment.length} equipment
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" disabled>
@@ -923,6 +1253,33 @@ export function InventoryContent() {
           </Button>
         </div>
       </div>
+<<<<<<< HEAD
     </div>
   )
 }
+=======
+      {editingEquipment && (
+        <EditEquipmentDialog
+          equipment={editingEquipment}
+          organizations={organizations}
+          open={!!editingEquipment}
+          onOpenChange={(open) => {
+            if (!open) setEditingEquipment(null)
+          }}
+        />
+      )}
+      {qrEquipment && (
+        <QrCodeDialog
+          equipmentId={qrEquipment.id}
+          equipmentName={qrEquipment.name}
+          assetNumber={qrEquipment.assetNumber}
+          open={!!qrEquipment}
+          onOpenChange={(open) => {
+            if (!open) setQrEquipment(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

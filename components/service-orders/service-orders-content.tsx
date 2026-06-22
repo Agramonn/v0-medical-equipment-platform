@@ -46,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+<<<<<<< HEAD
 import {
   serviceOrders,
   type ServiceOrder,
@@ -65,6 +66,36 @@ const statusFilters: { value: ServiceOrderStatus | 'all'; label: string }[] = [
   { value: 'completed', label: 'Completed' },
   { value: 'pending-signature', label: 'Pending Signature' },
   { value: 'closed', label: 'Closed' },
+=======
+import { ServiceOrderWithRelations } from '@/lib/types'
+import { CreateServiceOrderWizard } from './create-service-order-wizard'
+import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
+
+type EquipmentOption = {
+  id: string
+  name: string
+  manufacturer: string
+  model: string
+  serialNumber: string
+  assetNumber: string
+  department: string
+  organizationId: string
+  organization: { name: string }
+}
+
+type EngineerOption = { id: string; name: string }
+
+const statusFilters = [
+  { value: 'all', label: 'All Status' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'ASSIGNED', label: 'Assigned' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'PENDING_PARTS', label: 'Pending Parts' },
+  { value: 'PENDING_CUSTOMER', label: 'Pending Customer' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'PENDING_SIGNATURE', label: 'Pending Signature' },
+  { value: 'CLOSED', label: 'Closed' },
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
 ]
 
 interface StatCard {
@@ -72,23 +103,49 @@ interface StatCard {
   count: number
   Icon: typeof FileText
   className: string
+<<<<<<< HEAD
   filter: ServiceOrderStatus | 'all'
 }
 
 export function ServiceOrdersContent() {
+=======
+  filter: string
+}
+
+export function ServiceOrdersContent({
+  orders,
+  equipmentList,
+  engineers,
+  currentUserId,
+}: {
+  orders: ServiceOrderWithRelations[]
+  equipmentList: EquipmentOption[]
+  engineers: EngineerOption[]
+  currentUserId: string
+}) {
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [typeFilter, setTypeFilter] = React.useState<string>('all')
   const [query, setQuery] = React.useState('')
   const [wizardOpen, setWizardOpen] = React.useState(false)
+<<<<<<< HEAD
   const [activeOrder, setActiveOrder] = React.useState<ServiceOrder | null>(null)
   const [detailOpen, setDetailOpen] = React.useState(false)
 
   const filteredOrders = serviceOrders.filter((order) => {
+=======
+
+  const filteredOrders = orders.filter((order) => {
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
     if (statusFilter !== 'all' && order.status !== statusFilter) return false
     if (typeFilter !== 'all' && order.type !== typeFilter) return false
     if (
       query &&
+<<<<<<< HEAD
       !`${order.id} ${order.equipment.name} ${order.equipment.hospital}`
+=======
+      !`${order.orderNumber} ${order.equipment.name} ${order.organization.name}`
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         .toLowerCase()
         .includes(query.toLowerCase())
     )
@@ -99,13 +156,18 @@ export function ServiceOrdersContent() {
   const stats: StatCard[] = [
     {
       label: 'Total Orders',
+<<<<<<< HEAD
       count: serviceOrders.length,
+=======
+      count: orders.length,
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       Icon: FileText,
       className: 'bg-primary/10 text-primary',
       filter: 'all',
     },
     {
       label: 'Assigned',
+<<<<<<< HEAD
       count: serviceOrders.filter((o) => o.status === 'assigned').length,
       Icon: UserCog,
       className: 'bg-secondary text-secondary-foreground',
@@ -148,6 +210,45 @@ export function ServiceOrdersContent() {
     setDetailOpen(true)
   }
 
+=======
+      count: orders.filter((o) => o.status === 'ASSIGNED').length,
+      Icon: UserCog,
+      className: 'bg-secondary text-secondary-foreground',
+      filter: 'ASSIGNED',
+    },
+    {
+      label: 'In Progress',
+      count: orders.filter((o) => o.status === 'IN_PROGRESS').length,
+      Icon: Wrench,
+      className: 'bg-primary/10 text-primary',
+      filter: 'IN_PROGRESS',
+    },
+    {
+      label: 'Blocked',
+      count: orders.filter(
+        (o) => o.status === 'PENDING_PARTS' || o.status === 'PENDING_CUSTOMER'
+      ).length,
+      Icon: PauseCircle,
+      className: 'bg-warning/10 text-warning',
+      filter: 'PENDING_PARTS',
+    },
+    {
+      label: 'Awaiting Review',
+      count: orders.filter((o) => o.status === 'COMPLETED').length,
+      Icon: CheckCircle2,
+      className: 'bg-success/10 text-success',
+      filter: 'COMPLETED',
+    },
+    {
+      label: 'Pending Signature',
+      count: orders.filter((o) => o.status === 'PENDING_SIGNATURE').length,
+      Icon: FileSignature,
+      className: 'bg-primary/10 text-primary',
+      filter: 'PENDING_SIGNATURE',
+    },
+  ]
+
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -223,6 +324,7 @@ export function ServiceOrdersContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
+<<<<<<< HEAD
                 <SelectItem value="Preventive Maintenance">
                   Preventive Maintenance
                 </SelectItem>
@@ -232,6 +334,13 @@ export function ServiceOrdersContent() {
                 <SelectItem value="Calibration">Calibration</SelectItem>
                 <SelectItem value="Inspection">Inspection</SelectItem>
                 <SelectItem value="Installation">Installation</SelectItem>
+=======
+                <SelectItem value="PREVENTIVE_MAINTENANCE">Preventive Maintenance</SelectItem>
+                <SelectItem value="CORRECTIVE_MAINTENANCE">Corrective Maintenance</SelectItem>
+                <SelectItem value="CALIBRATION">Calibration</SelectItem>
+                <SelectItem value="INSPECTION">Inspection</SelectItem>
+                <SelectItem value="INSTALLATION">Installation</SelectItem>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
               </SelectContent>
             </Select>
           </div>
@@ -257,6 +366,7 @@ export function ServiceOrdersContent() {
             </TableHeader>
             <TableBody>
               {filteredOrders.map((order) => (
+<<<<<<< HEAD
                 <TableRow
                   key={order.id}
                   className="cursor-pointer"
@@ -264,6 +374,13 @@ export function ServiceOrdersContent() {
                 >
                   <TableCell>
                     <span className="font-mono font-medium">{order.id}</span>
+=======
+                <TableRow key={order.id}>
+                  <TableCell>
+                    <span className="font-mono text-xs font-medium">
+                      {order.orderNumber.slice(0, 8)}
+                    </span>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -275,7 +392,11 @@ export function ServiceOrdersContent() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div>
+<<<<<<< HEAD
                       <p className="text-sm">{order.equipment.hospital}</p>
+=======
+                      <p className="text-sm">{order.organization.name}</p>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       <p className="text-xs text-muted-foreground">
                         {order.equipment.department}
                       </p>
@@ -291,12 +412,20 @@ export function ServiceOrdersContent() {
                     <StatusBadge status={order.status} />
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
+<<<<<<< HEAD
                     {order.assignedEngineer ? (
+=======
+                    {order.assignedTo ? (
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       <div className="flex items-center gap-2">
                         <div className="flex size-6 items-center justify-center rounded-full bg-primary/10">
                           <User className="size-3 text-primary" />
                         </div>
+<<<<<<< HEAD
                         <span className="text-sm">{order.assignedEngineer}</span>
+=======
+                        <span className="text-sm">{order.assignedTo.name}</span>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">Unassigned</span>
@@ -304,6 +433,7 @@ export function ServiceOrdersContent() {
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <span className="text-sm font-medium text-primary">
+<<<<<<< HEAD
                       {order.scheduledDate}
                     </span>
                   </TableCell>
@@ -314,6 +444,14 @@ export function ServiceOrdersContent() {
                         size="icon"
                         onClick={() => openDetail(order)}
                       >
+=======
+                      {order.scheduledAt?.toLocaleDateString('en-US') ?? '—'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon">
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                         <Eye className="size-4" />
                         <span className="sr-only">View</span>
                       </Button>
@@ -326,13 +464,21 @@ export function ServiceOrdersContent() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Supervisor Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
+<<<<<<< HEAD
                           <DropdownMenuItem onClick={() => openDetail(order)}>
+=======
+                          <DropdownMenuItem>
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                             <Eye className="mr-2 size-4" />
                             View Record
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <UserCog className="mr-2 size-4" />
+<<<<<<< HEAD
                             {order.assignedEngineer ? 'Reassign' : 'Assign'} Engineer
+=======
+                            {order.assignedTo ? 'Reassign' : 'Assign'} Engineer
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Settings2 className="mr-2 size-4" />
@@ -353,6 +499,16 @@ export function ServiceOrdersContent() {
                   </TableCell>
                 </TableRow>
               ))}
+<<<<<<< HEAD
+=======
+              {filteredOrders.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
+                    No service orders found.
+                  </TableCell>
+                </TableRow>
+              )}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
             </TableBody>
           </Table>
         </CardContent>
@@ -361,7 +517,11 @@ export function ServiceOrdersContent() {
       {/* Footer */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
+<<<<<<< HEAD
           Showing {filteredOrders.length} of {serviceOrders.length} orders
+=======
+          Showing {filteredOrders.length} of {orders.length} orders
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" disabled>
@@ -373,6 +533,7 @@ export function ServiceOrdersContent() {
         </div>
       </div>
 
+<<<<<<< HEAD
       <CreateServiceOrderWizard open={wizardOpen} onOpenChange={setWizardOpen} />
       <ServiceOrderDetailSheet
         order={activeOrder}
@@ -382,3 +543,15 @@ export function ServiceOrdersContent() {
     </div>
   )
 }
+=======
+      <CreateServiceOrderWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        equipmentList={equipmentList}
+        engineers={engineers}
+        currentUserId={currentUserId}
+      />
+    </div>
+  )
+}
+>>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
