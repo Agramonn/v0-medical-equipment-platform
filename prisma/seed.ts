@@ -8,7 +8,7 @@ import {
   TimelineRole,
   Priority,
   UserRole,
-} from '@prisma/client'
+} from '../lib/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 
 const connectionString = process.env.DATABASE_URL!
