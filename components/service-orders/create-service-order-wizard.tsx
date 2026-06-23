@@ -7,7 +7,9 @@ import {
   FileCheck2,
   Loader2,
   MapPin,
+  RefreshCw,
   Search,
+  Stethoscope,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -93,9 +95,11 @@ interface CreateServiceOrderWizardProps {
 
 function EquipmentInfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+    <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 px-3 py-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   )
 }
@@ -314,24 +318,36 @@ export function CreateServiceOrderWizard({
               </div>
 
               {selectedEquipment && (
-                <Card>
-                  <CardHeader className="flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-sm">Equipment Information</CardTitle>
+                <Card className="overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-6 py-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Stethoscope className="size-5" />
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <CardTitle className="truncate text-base leading-tight">
+                          {selectedEquipment.name}
+                        </CardTitle>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {selectedEquipment.manufacturer} {selectedEquipment.model}
+                        </p>
+                      </div>
+                    </div>
                     <Button
-                      variant="ghost"
+                      type="button"
+                      variant="outline"
                       size="sm"
+                      className="shrink-0 gap-1.5"
                       onClick={() => {
                         setEquipmentId('')
                         setEquipmentQuery('')
                       }}
                     >
+                      <RefreshCw className="size-3.5" />
                       Change
                     </Button>
-                  </CardHeader>
-                  <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-                    <EquipmentInfoRow label="Name" value={selectedEquipment.name} />
-                    <EquipmentInfoRow label="Manufacturer" value={selectedEquipment.manufacturer} />
-                    <EquipmentInfoRow label="Model" value={selectedEquipment.model} />
+                  </div>
+                  <CardContent className="grid gap-3 pt-4 sm:grid-cols-2">
                     <EquipmentInfoRow
                       label="Serial Number"
                       value={<span className="font-mono">{selectedEquipment.serialNumber}</span>}
