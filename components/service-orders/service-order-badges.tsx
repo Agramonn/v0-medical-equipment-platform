@@ -1,34 +1,4 @@
 import { Badge } from '@/components/ui/badge'
-<<<<<<< HEAD
-import {
-  serviceOrderStatusConfig,
-  serviceTypeConfig,
-  type ServiceOrderStatus,
-  type ServiceType,
-  type ServicePriority,
-} from '@/lib/service-order-data'
-import { cn } from '@/lib/utils'
-
-export function StatusBadge({
-  status,
-  className,
-}: {
-  status: ServiceOrderStatus
-  className?: string
-}) {
-  const meta = serviceOrderStatusConfig[status]
-  return <Badge className={cn(meta.className, className)}>{meta.label}</Badge>
-}
-
-export function TypeBadge({
-  type,
-  className,
-}: {
-  type: ServiceType
-  className?: string
-}) {
-  const meta = serviceTypeConfig[type]
-=======
 import { cn } from '@/lib/utils'
 import { ServiceOrderWithRelations } from '@/lib/types'
 
@@ -62,7 +32,6 @@ export function StatusBadge({ status, className }: { status: Status; className?:
 
 export function TypeBadge({ type, className }: { type: Type; className?: string }) {
   const meta = typeConfig[type]
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   return (
     <Badge variant="outline" className={cn(meta.className, className)}>
       {meta.short}
@@ -70,15 +39,6 @@ export function TypeBadge({ type, className }: { type: Type; className?: string 
   )
 }
 
-<<<<<<< HEAD
-export function PriorityBadge({ priority }: { priority: ServicePriority }) {
-  switch (priority) {
-    case 'critical':
-      return <Badge variant="destructive">Critical</Badge>
-    case 'high':
-      return <Badge className="bg-warning text-warning-foreground">High</Badge>
-    case 'medium':
-=======
 export function PriorityBadge({ priority }: { priority: Priority }) {
   switch (priority) {
     case 'CRITICAL':
@@ -86,13 +46,8 @@ export function PriorityBadge({ priority }: { priority: Priority }) {
     case 'HIGH':
       return <Badge className="bg-warning text-warning-foreground">High</Badge>
     case 'MEDIUM':
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       return <Badge variant="secondary">Medium</Badge>
     default:
       return <Badge variant="outline">Low</Badge>
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
