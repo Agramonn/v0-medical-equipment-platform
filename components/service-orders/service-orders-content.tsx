@@ -46,9 +46,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { ServiceOrderWithRelations } from '@/lib/types'
 import { CreateServiceOrderWizard } from './create-service-order-wizard'
 import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
+import { ServiceOrderDetailSheet } from './service-order-detail-sheet'
+import { assignOrderToEngineer, cancelServiceOrder } from '@/lib/actions/service-orders'
 
 type EquipmentOption = {
   id: string
@@ -84,6 +95,8 @@ interface StatCard {
   filter: string
 }
 
+const ITEMS_PER_PAGE = 10
+
 export function ServiceOrdersContent({
   orders,
   equipmentList,
@@ -99,6 +112,61 @@ export function ServiceOrdersContent({
   const [typeFilter, setTypeFilter] = React.useState<string>('all')
   const [query, setQuery] = React.useState('')
   const [wizardOpen, setWizardOpen] = React.useState(false)
+  const [activeOrder, setActiveOrder] = React.useState<ServiceOrderWithRelations | null>(null)
+  const [detailOpen, setDetailOpen] = React.useState(false)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [assignDialogOpen, setAssignDialogOpen] = React.useState(false)
+  const [selectedOrderForAssign, setSelectedOrderForAssign] = React.useState<ServiceOrderWithRelations | null>(null)
+  const [selectedEngineer, setSelectedEngineer] = React.useState<string>('')
+
+  function openDetail(order: ServiceOrderWithRelations) {
+    setActiveOrder(order)
+    setDetailOpen(true)
+  }
+
+  function openAssignDialog(order: ServiceOrderWithRelations) {
+    setSelectedOrderForAssign(order)
+    setSelectedEngineer(order.assignedToId ?? '')
+    setAssignDialogOpen(true)
+  }
+
+  async function handleAssignEngineer() {
+    if (!selectedOrderForAssign || !selectedEngineer) return
+    try {
+      await assignOrderToEngineer(selectedOrderForAssign.id, selectedEngineer)
+      setAssignDialogOpen(false)
+      setSelectedOrderForAssign(null)
+    } catch (e) {
+      console.error('Failed to assign engineer:', e)
+    }
+  }
+
+  async function handleCancelOrder(orderId: string) {
+    if (!confirm('Are you sure you want to cancel this order?')) return
+    try {
+      await cancelServiceOrder(orderId)
+    } catch (e) {
+      console.error('Failed to cancel order:', e)
+    }
+  }
+
+  async function handleGeneratePDF(order: ServiceOrderWithRelations) {
+    try {
+      const response = await fetch(`/api/service-orders/${order.id}/pdf`, {
+        method: 'GET',
+      })
+      if (!response.ok) throw new Error('Failed to generate PDF')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${order.orderNumber}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Failed to generate PDF:', e)
+    }
+  }
 
   const filteredOrders = orders.filter((order) => {
     if (statusFilter !== 'all' && order.status !== statusFilter) return false
@@ -112,6 +180,14 @@ export function ServiceOrdersContent({
       return false
     return true
   })
+
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, typeFilter, query])
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
   const stats: StatCard[] = [
     {
@@ -264,8 +340,8 @@ export function ServiceOrdersContent({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
+              {paginatedOrders.map((order) => (
+                <TableRow key={order.id} className="cursor-pointer" onClick={() => openDetail(order)}>
                   <TableCell>
                     <span className="font-mono text-xs font-medium">
                       {order.orderNumber.slice(0, 8)}
@@ -313,9 +389,9 @@ export function ServiceOrdersContent({
                       {order.scheduledAt?.toLocaleDateString('en-US') ?? '—'}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => openDetail(order)}>
                         <Eye className="size-4" />
                         <span className="sr-only">View</span>
                       </Button>
@@ -328,24 +404,27 @@ export function ServiceOrdersContent({
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Supervisor Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openDetail(order)}>
                             <Eye className="mr-2 size-4" />
                             View Record
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openAssignDialog(order)}>
                             <UserCog className="mr-2 size-4" />
                             {order.assignedTo ? 'Reassign' : 'Assign'} Engineer
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem disabled>
                             <Settings2 className="mr-2 size-4" />
                             Edit Order
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleGeneratePDF(order)}>
                             <Printer className="mr-2 size-4" />
                             Generate PDF
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleCancelOrder(order.id)}
+                          >
                             <Trash2 className="mr-2 size-4" />
                             Cancel Order
                           </DropdownMenuItem>
@@ -355,7 +434,7 @@ export function ServiceOrdersContent({
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredOrders.length === 0 && (
+              {paginatedOrders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     No service orders found.
@@ -370,13 +449,26 @@ export function ServiceOrdersContent({
       {/* Footer */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredOrders.length} of {orders.length} orders
+          Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredOrders.length)} of {filteredOrders.length} orders
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
             Previous
           </Button>
-          <Button variant="outline" size="sm">
+          <span className="text-sm text-muted-foreground">
+            {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
             Next
           </Button>
         </div>
@@ -389,6 +481,52 @@ export function ServiceOrdersContent({
         engineers={engineers}
         currentUserId={currentUserId}
       />
+      <ServiceOrderDetailSheet
+        order={activeOrder}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        currentUserId={currentUserId}
+        engineers={engineers}
+      />
+
+      {/* Assign Engineer Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedOrderForAssign?.assignedTo ? 'Reassign' : 'Assign'} Engineer
+            </DialogTitle>
+            <DialogDescription>
+              Select an engineer for order {selectedOrderForAssign?.orderNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="engineer-select">Engineer</Label>
+              <Select value={selectedEngineer} onValueChange={setSelectedEngineer}>
+                <SelectTrigger id="engineer-select">
+                  <SelectValue placeholder="Select engineer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {engineers.map((eng) => (
+                    <SelectItem key={eng.id} value={eng.id}>
+                      {eng.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignEngineer} disabled={!selectedEngineer}>
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

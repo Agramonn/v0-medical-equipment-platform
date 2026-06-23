@@ -85,4 +85,12 @@ export type ServiceOrderWithRelations = {
     id: string
     name: string
   }
+  timelineEvents: {
+    id: string
+    label: string
+    role: 'SUPERVISOR' | 'ENGINEER' | 'SYSTEM' | 'CUSTOMER'
+    note: string | null
+    createdAt: Date
+    byUser: { id: string; name: string } | null
+  }[]
 }

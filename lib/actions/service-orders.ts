@@ -81,7 +81,7 @@ export async function updateServiceOrderStatus(
   orderId: string,
   newStatus: string,
   userId: string,
-  note?: string
+  options?: { note?: string; assignedToId?: string }
 ) {
   const order = await db.serviceOrder.findUnique({
     where: { id: orderId },
@@ -103,18 +103,29 @@ export async function updateServiceOrderStatus(
     CLOSED: 'Service Order closed',
   }
 
+  let label = statusLabels[newStatus] ?? `Status changed to ${newStatus}`
+
+  if (newStatus === 'ASSIGNED' && options?.assignedToId) {
+    const engineer = await db.user.findUnique({
+      where: { id: options.assignedToId },
+      select: { name: true },
+    })
+    label = `Assigned to ${engineer?.name ?? 'engineer'}`
+  }
+
   await db.serviceOrder.update({
     where: { id: orderId },
     data: {
       status: newStatus as any,
+      assignedToId: options?.assignedToId ?? undefined,
       completedAt: newStatus === 'COMPLETED' ? new Date() : undefined,
       closedAt: newStatus === 'CLOSED' ? new Date() : undefined,
       timelineEvents: {
         create: {
-          label: statusLabels[newStatus] ?? `Status changed to ${newStatus}`,
+          label,
           role: 'SUPERVISOR',
           byUserId: userId,
-          note: note || null,
+          note: options?.note || null,
         },
       },
     },
@@ -122,4 +133,34 @@ export async function updateServiceOrderStatus(
 
   revalidatePath('/service-orders')
   revalidatePath(`/equipment/${order.equipmentId}`)
+}
+
+export async function assignOrderToEngineer(orderId: string, engineerId: string) {
+  const order = await db.serviceOrder.findUnique({
+    where: { id: orderId },
+    select: { equipmentId: true, createdById: true },
+  })
+
+  if (!order) {
+    throw new Error('Service order not found')
+  }
+
+  await updateServiceOrderStatus(orderId, 'ASSIGNED', order.createdById, {
+    assignedToId: engineerId,
+  })
+}
+
+export async function cancelServiceOrder(orderId: string) {
+  const order = await db.serviceOrder.findUnique({
+    where: { id: orderId },
+    select: { equipmentId: true, createdById: true },
+  })
+
+  if (!order) {
+    throw new Error('Service order not found')
+  }
+
+  await updateServiceOrderStatus(orderId, 'CLOSED', order.createdById, {
+    note: 'Service order cancelled',
+  })
 }

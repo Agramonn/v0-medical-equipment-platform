@@ -41,8 +41,13 @@ async function getServiceOrdersForEquipment(equipmentId: string) {
       organization: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
+      timelineEvents: {
+        include: {
+          byUser: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
-    orderBy: { createdAt: 'desc' },
   })
 
   return orders

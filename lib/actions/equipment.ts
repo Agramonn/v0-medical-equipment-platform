@@ -15,30 +15,45 @@ export async function createEquipment(formData: FormData) {
   const organizationId = formData.get('organizationId') as string
   const contractType = formData.get('contractType') as string
 
-  // Validación básica antes de tocar la DB
   if (!name || !serialNumber || !assetNumber || !organizationId) {
     throw new Error('Faltan campos obligatorios')
   }
 
-  await db.equipment.create({
-    data: {
-      name,
-      category,
-      manufacturer,
-      model,
-      serialNumber,
-      assetNumber,
-      department,
-      location,
-      organizationId,
-      contractType: contractType || null,
-      installDate: new Date(),
-      purchaseDate: new Date(),
-      status: 'OPERATIONAL',
-      hoursUsed: 0,
-      maxHours: 15000,
-    },
-  })
+  try {
+    await db.equipment.create({
+      data: {
+        name,
+        category,
+        manufacturer,
+        model,
+        serialNumber,
+        assetNumber,
+        department,
+        location,
+        organizationId,
+        contractType: contractType || null,
+        installDate: new Date(),
+        purchaseDate: new Date(),
+        status: 'OPERATIONAL',
+        hoursUsed: 0,
+        maxHours: 15000,
+      },
+    })
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[0]
+      if (field === 'serialNumber') {
+        throw new Error('El número de serie ya existe en el inventario')
+      } else if (field === 'assetNumber') {
+        throw new Error('El número de activo ya existe en el inventario')
+      }
+      throw new Error('El valor ya existe en el inventario')
+    }
+    if (error.message) {
+      throw error
+    }
+    throw new Error('Error al crear el equipo')
+  }
 
   revalidatePath('/inventory')
 }
@@ -74,22 +89,38 @@ export async function updateEquipment(id: string, formData: FormData) {
     throw new Error('Missing required fields')
   }
 
-  await db.equipment.update({
-    where: { id },
-    data: {
-      name,
-      category,
-      manufacturer,
-      model,
-      serialNumber,
-      assetNumber,
-      department,
-      location,
-      organizationId,
-      contractType: contractType || null,
-      status: status as any,
-    },
-  })
+  try {
+    await db.equipment.update({
+      where: { id },
+      data: {
+        name,
+        category,
+        manufacturer,
+        model,
+        serialNumber,
+        assetNumber,
+        department,
+        location,
+        organizationId,
+        contractType: contractType || null,
+        status: status as any,
+      },
+    })
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[0]
+      if (field === 'serialNumber') {
+        throw new Error('El número de serie ya existe en el inventario')
+      } else if (field === 'assetNumber') {
+        throw new Error('El número de activo ya existe en el inventario')
+      }
+      throw new Error('El valor ya existe en el inventario')
+    }
+    if (error.message) {
+      throw error
+    }
+    throw new Error('Error al actualizar el equipo')
+  }
 
   revalidatePath('/inventory')
 }

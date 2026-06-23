@@ -75,6 +75,8 @@ import { DeleteEquipmentButton } from './delete-equipment-button'
 import { EditEquipmentDialog } from './edit-equipment-dialog'
 import { QrCodeDialog } from './qr-code-dialog'
 
+const ITEMS_PER_PAGE = 10
+
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -303,6 +305,7 @@ export function InventoryContent({
   const [searchQuery, setSearchQuery] = React.useState<string>('')
   const [editingEquipment, setEditingEquipment] = React.useState<EquipmentWithOrganization | null>(null)
   const [qrEquipment, setQrEquipment] = React.useState<EquipmentWithOrganization | null>(null)
+  const [currentPage, setCurrentPage] = React.useState(1)
 
   const hospitals = React.useMemo(() => {
     const unique = new Map<string, string>()
@@ -326,11 +329,19 @@ export function InventoryContent({
     return true
   })
 
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, hospitalFilter, searchQuery])
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
   const toggleSelectAll = () => {
-    if (selectedItems.length === filteredData.length) {
+    if (selectedItems.length === paginatedData.length) {
       setSelectedItems([])
     } else {
-      setSelectedItems(filteredData.map((item) => item.id))
+      setSelectedItems(paginatedData.map((item) => item.id))
     }
   }
 
@@ -512,7 +523,7 @@ export function InventoryContent({
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
-                      checked={selectedItems.length === filteredData.length && filteredData.length > 0}
+                      checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -526,7 +537,7 @@ export function InventoryContent({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.map((equipment) => (
+                {paginatedData.map((equipment) => (
                   <TableRow key={equipment.id}>
                     <TableCell>
                       <Checkbox
@@ -619,7 +630,7 @@ export function InventoryContent({
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredData.map((equipment) => (
+          {paginatedData.map((equipment) => (
             <Card key={equipment.id} className="hover:bg-accent/30 transition-colors">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -678,13 +689,26 @@ export function InventoryContent({
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredData.length} of {equipment.length} equipment
+          Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredData.length)} of {filteredData.length} equipment
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
             Previous
           </Button>
-          <Button variant="outline" size="sm">
+          <span className="text-sm text-muted-foreground">
+            {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
             Next
           </Button>
         </div>
