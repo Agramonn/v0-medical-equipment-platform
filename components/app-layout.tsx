@@ -440,31 +440,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsHydrated(true)
   }, [])
 
-<<<<<<< HEAD
-  // Guard: keep engineers out of supervisor-only routes (e.g. the dashboard)
-  React.useEffect(() => {
-    if (!isHydrated) return
-    const supervisorOnly = ['/', '/service-orders', '/history', '/contracts', '/organizations', '/settings']
-    if (role === 'engineer' && supervisorOnly.includes(pathname)) {
-      router.replace('/engineer')
-    }
-  }, [isHydrated, role, pathname, router])
-
-  // Save role to localStorage and navigate to the role's landing page
-  const handleSetRole = React.useCallback(
-    (newRole: UserRole) => {
-      setRole((prev) => {
-        if (prev !== newRole) {
-          localStorage.setItem('medequip-role', newRole)
-          router.push(newRole === 'engineer' ? '/engineer' : '/')
-        }
-        return newRole
-      })
-    },
-    [router],
-  )
-
-=======
   // Save role to localStorage and navigate to the role's landing page
   const handleSetRole = React.useCallback(
     (newRole: UserRole) => {
@@ -496,7 +471,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }
 }, [isHydrated, role, pathname, router])
 
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   // Prevent hydration mismatch by not rendering until client-side
   if (!isHydrated) {
     return null

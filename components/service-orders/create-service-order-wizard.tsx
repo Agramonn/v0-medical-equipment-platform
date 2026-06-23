@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { createServiceOrder } from '@/lib/actions/service-orders'
+import type { ServiceType as HumanServiceType } from '@/lib/service-order-data'
 
 const STEPS = ['Equipment', 'Service Info', 'Scope of Work', 'Completion'] as const
 
@@ -50,6 +51,19 @@ const serviceTypeLabels: Record<ServiceType, string> = {
 }
 
 const serviceTypes = Object.keys(serviceTypeLabels) as ServiceType[]
+
+const humanToCodeType: Record<string, ServiceType> = {
+  'Preventive Maintenance': 'PREVENTIVE_MAINTENANCE',
+  'Corrective Maintenance': 'CORRECTIVE_MAINTENANCE',
+  Calibration: 'CALIBRATION',
+  Inspection: 'INSPECTION',
+  Installation: 'INSTALLATION',
+  PREVENTIVE_MAINTENANCE: 'PREVENTIVE_MAINTENANCE',
+  CORRECTIVE_MAINTENANCE: 'CORRECTIVE_MAINTENANCE',
+  CALIBRATION: 'CALIBRATION',
+  INSPECTION: 'INSPECTION',
+  INSTALLATION: 'INSTALLATION',
+}
 
 type EquipmentOption = {
   id: string
@@ -74,7 +88,7 @@ interface CreateServiceOrderWizardProps {
   // When launched from Equipment workspace, equipment is pre-selected and locked.
   presetEquipmentId?: string
   // When launched from a "Create X Service Order" button, lock the type.
-  presetType?: ServiceType
+  presetType?: ServiceType | HumanServiceType
 }
 
 function EquipmentInfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -116,7 +130,9 @@ export function CreateServiceOrderWizard({
     )
   }, [equipmentQuery, equipmentList])
   // Step 2
-  const [serviceType, setServiceType] = React.useState<ServiceType | ''>(presetType ?? '')
+  const [serviceType, setServiceType] = React.useState<ServiceType | ''>(
+    presetType ? (humanToCodeType[presetType as string] ?? '') : ''
+  )
   const [priority, setPriority] = React.useState<ServicePriority>('MEDIUM')
   const [engineerId, setEngineerId] = React.useState('')
   const [scheduledDate, setScheduledDate] = React.useState('')
@@ -132,7 +148,7 @@ export function CreateServiceOrderWizard({
     if (open) {
       setStep(presetEquipmentId ? 1 : 0)
       setEquipmentId(presetEquipmentId ?? '')
-      setServiceType(presetType ?? '')
+      setServiceType(presetType ? (humanToCodeType[presetType as string] ?? '') : '')
       setError(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,7 +160,7 @@ export function CreateServiceOrderWizard({
   function reset() {
     setStep(presetEquipmentId ? 1 : 0)
     setEquipmentId(presetEquipmentId ?? '')
-    setServiceType(presetType ?? '')
+    setServiceType(presetType ? (humanToCodeType[presetType as string] ?? '') : '')
     setPriority('MEDIUM')
     setEngineerId('')
     setScheduledDate('')

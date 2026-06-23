@@ -25,11 +25,40 @@ import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { serviceOrders, type ServiceOrder } from '@/lib/service-order-data'
 import { EngineerServicePanel } from './engineer-service-panel'
-import {
-  PriorityBadge,
-  StatusBadge,
-  TypeBadge,
-} from '@/components/service-orders/service-order-badges'
+
+// TEMP: local badges for the legacy mock model (lib/service-order-data.ts).
+// TODO: remove these once engineer-dashboard.tsx is connected to real data
+// and can use the shared badges from service-order-badges.tsx.
+function MockTypeBadge({ type }: { type: ServiceOrder['type'] }) {
+  return <Badge variant="outline">{type}</Badge>
+}
+
+function MockPriorityBadge({ priority }: { priority: ServiceOrder['priority'] }) {
+  switch (priority) {
+    case 'critical':
+      return <Badge variant="destructive">Critical</Badge>
+    case 'high':
+      return <Badge className="bg-warning text-warning-foreground">High</Badge>
+    case 'medium':
+      return <Badge variant="secondary">Medium</Badge>
+    default:
+      return <Badge variant="outline">Low</Badge>
+  }
+}
+
+function MockStatusBadge({ status }: { status: ServiceOrder['status'] }) {
+  const labels: Record<ServiceOrder['status'], string> = {
+    draft: 'Draft',
+    assigned: 'Assigned',
+    'in-progress': 'In Progress',
+    'pending-parts': 'Pending Parts',
+    'pending-customer': 'Pending Customer',
+    completed: 'Completed',
+    'pending-signature': 'Pending Signature',
+    closed: 'Closed',
+  }
+  return <Badge variant="secondary">{labels[status]}</Badge>
+}
 
 // Today's services: orders assigned to the signed-in engineer that are still
 // in an actionable state (sourced from the shared Service Order model).
@@ -97,10 +126,10 @@ export function EngineerDashboard() {
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-    
+
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
@@ -122,7 +151,7 @@ export function EngineerDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge 
+          <Badge
             variant={isOnline ? 'default' : 'destructive'}
             className="flex items-center gap-1.5"
           >
@@ -194,8 +223,8 @@ export function EngineerDashboard() {
                 key={day.day}
                 className={cn(
                   'flex flex-shrink-0 min-w-[64px] flex-col items-center rounded-lg p-3 transition-colors sm:min-w-0',
-                  day.isToday 
-                    ? 'bg-primary text-primary-foreground' 
+                  day.isToday
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-muted/50 hover:bg-muted'
                 )}
               >
@@ -249,9 +278,9 @@ export function EngineerDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{service.equipment.name}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <TypeBadge type={service.type} />
-                          <PriorityBadge priority={service.priority} />
-                          <StatusBadge status={service.status} />
+                          <MockTypeBadge type={service.type} />
+                          <MockPriorityBadge priority={service.priority} />
+                          <MockStatusBadge status={service.status} />
                         </div>
                       </div>
                       <ChevronRight className="size-5 text-muted-foreground flex-shrink-0" />

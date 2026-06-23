@@ -54,11 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
-<<<<<<< HEAD
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-=======
       <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

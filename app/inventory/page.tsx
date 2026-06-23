@@ -1,15 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
 import { InventoryContent } from '@/components/inventory/inventory-content'
-<<<<<<< HEAD
-
-export default function InventoryPage() {
-  return (
-    <AppLayout>
-      <InventoryContent />
-    </AppLayout>
-  )
-}
-=======
 import { db } from '@/lib/db'
 import { EquipmentWithOrganization } from '@/lib/types'
 
@@ -40,4 +30,3 @@ export default async function InventoryPage() {
     </AppLayout>
   )
 }
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

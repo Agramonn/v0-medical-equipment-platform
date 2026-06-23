@@ -1,15 +1,5 @@
 import { AppLayout } from '@/components/app-layout'
 import { ServiceOrdersContent } from '@/components/service-orders/service-orders-content'
-<<<<<<< HEAD
-
-export default function ServiceOrdersPage() {
-  return (
-    <AppLayout>
-      <ServiceOrdersContent />
-    </AppLayout>
-  )
-}
-=======
 import { db } from '@/lib/db'
 import { ServiceOrderWithRelations } from '@/lib/types'
 
@@ -95,4 +85,3 @@ export default async function ServiceOrdersPage() {
     </AppLayout>
   )
 }
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
