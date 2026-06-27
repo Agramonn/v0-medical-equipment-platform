@@ -57,29 +57,23 @@ async function getEngineers() {
   })
 }
 
-async function getSupervisor() {
-  // TODO: replace with the real logged-in user once auth is implemented (Phase 2)
-  return db.user.findFirst({
-    where: { role: 'SUPERVISOR' },
-    select: { id: true, name: true },
-  })
-}
+import { getCurrentUser } from '@/lib/get-current-user'
 
 export default async function ServiceOrdersPage() {
-  const [orders, equipmentList, engineers, supervisor] = await Promise.all([
+  const user = await getCurrentUser()
+  const [orders, equipmentList, engineers] = await Promise.all([
     getServiceOrders(),
     getEquipmentList(),
     getEngineers(),
-    getSupervisor(),
   ])
 
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <ServiceOrdersContent
         orders={orders}
         equipmentList={equipmentList}
         engineers={engineers}
-        currentUserId={supervisor?.id ?? ''}
+        currentUserId={user.id}
       />
     </AppLayout>
   )

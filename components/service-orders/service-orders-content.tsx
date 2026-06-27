@@ -54,6 +54,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { ServiceOrderWithRelations } from '@/lib/types'
 import { CreateServiceOrderWizard } from './create-service-order-wizard'
@@ -118,6 +128,9 @@ export function ServiceOrdersContent({
   const [assignDialogOpen, setAssignDialogOpen] = React.useState(false)
   const [selectedOrderForAssign, setSelectedOrderForAssign] = React.useState<ServiceOrderWithRelations | null>(null)
   const [selectedEngineer, setSelectedEngineer] = React.useState<string>('')
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false)
+  const [orderToCancel, setOrderToCancel] = React.useState<ServiceOrderWithRelations | null>(null)
+  const [isCancelling, setIsCancelling] = React.useState(false)
 
   function openDetail(order: ServiceOrderWithRelations) {
     setActiveOrder(order)
@@ -126,7 +139,7 @@ export function ServiceOrdersContent({
 
   function openAssignDialog(order: ServiceOrderWithRelations) {
     setSelectedOrderForAssign(order)
-    setSelectedEngineer(order.assignedToId ?? '')
+    setSelectedEngineer(order.assignedTo?.id ?? '')
     setAssignDialogOpen(true)
   }
 
@@ -141,12 +154,22 @@ export function ServiceOrdersContent({
     }
   }
 
-  async function handleCancelOrder(orderId: string) {
-    if (!confirm('Are you sure you want to cancel this order?')) return
+  function openCancelDialog(order: ServiceOrderWithRelations) {
+    setOrderToCancel(order)
+    setCancelDialogOpen(true)
+  }
+
+  async function handleConfirmCancel() {
+    if (!orderToCancel) return
+    setIsCancelling(true)
     try {
-      await cancelServiceOrder(orderId)
+      await cancelServiceOrder(orderToCancel.id)
+      setCancelDialogOpen(false)
+      setOrderToCancel(null)
     } catch (e) {
       console.error('Failed to cancel order:', e)
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -416,14 +439,14 @@ export function ServiceOrdersContent({
                             <Settings2 className="mr-2 size-4" />
                             Edit Order
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleGeneratePDF(order)}>
+                          <DropdownMenuItem disabled>
                             <Printer className="mr-2 size-4" />
-                            Generate PDF
+                            Generate PDF (coming soon)
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleCancelOrder(order.id)}
+                            onClick={() => openCancelDialog(order)}
                           >
                             <Trash2 className="mr-2 size-4" />
                             Cancel Order
@@ -527,6 +550,27 @@ export function ServiceOrdersContent({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this service order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will close order {orderToCancel?.orderNumber.slice(0, 8)} for{' '}
+              {orderToCancel?.equipment.name}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

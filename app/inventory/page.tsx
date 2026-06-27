@@ -2,6 +2,7 @@ import { AppLayout } from '@/components/app-layout'
 import { InventoryContent } from '@/components/inventory/inventory-content'
 import { db } from '@/lib/db'
 import { EquipmentWithOrganization } from '@/lib/types'
+import { getCurrentUser } from '@/lib/get-current-user'
 
 async function getEquipment(): Promise<EquipmentWithOrganization[]> {
   const equipment = await db.equipment.findMany({
@@ -23,9 +24,10 @@ export default async function InventoryPage() {
     getEquipment(),
     getOrganizations(),
   ])
+  const user = await getCurrentUser();
 
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <InventoryContent equipment={equipment} organizations={organizations} />
     </AppLayout>
   )

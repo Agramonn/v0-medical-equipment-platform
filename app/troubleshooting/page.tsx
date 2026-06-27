@@ -1,9 +1,12 @@
 import { AppLayout } from '@/components/app-layout'
 import { TroubleshootingContent } from '@/components/troubleshooting/troubleshooting-content'
+import { getCurrentUser } from '@/lib/get-current-user'
 
-export default function TroubleshootingPage() {
+export default async function TroubleshootingPage() {
+  const user = await getCurrentUser();
+
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <TroubleshootingContent />
     </AppLayout>
   )

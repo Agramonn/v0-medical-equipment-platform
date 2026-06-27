@@ -35,7 +35,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command'
-import { useRole } from '@/components/app-layout'
 
 type Item = {
   label: string
@@ -54,11 +53,10 @@ const equipmentIndex = [
   { id: 'EQ-5523', name: 'Defibrillator LIFEPAK 20', icon: HeartPulse, location: 'ICU - North Clinic' },
 ]
 
-export function CommandPalette() {
+export function CommandPalette({ role }: { role: 'SUPERVISOR' | 'ENGINEER' }) {
   const [open, setOpen] = React.useState(false)
   const router = useRouter()
   const { setTheme } = useTheme()
-  const { role, setRole } = useRole()
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -84,7 +82,7 @@ export function CommandPalette() {
   }, [])
 
   const navItems: Item[] =
-    role === 'supervisor'
+    role === 'SUPERVISOR'
       ? [
           { label: 'Dashboard', icon: LayoutDashboard, href: '/' },
           { label: 'Inventory', icon: Package, href: '/inventory', keywords: 'equipment assets' },
@@ -145,21 +143,6 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Actions">
-          <CommandItem
-            value="switch role supervisor engineer"
-            onSelect={() =>
-              runCommand(() => setRole(role === 'supervisor' ? 'engineer' : 'supervisor'))
-            }
-          >
-            {role === 'supervisor' ? (
-              <HardHat className="mr-2 size-4 text-muted-foreground" />
-            ) : (
-              <Shield className="mr-2 size-4 text-muted-foreground" />
-            )}
-            <span>
-              Switch to {role === 'supervisor' ? 'Field Engineer' : 'Supervisor'}
-            </span>
-          </CommandItem>
           <CommandItem
             value="theme light mode"
             onSelect={() => runCommand(() => setTheme('light'))}

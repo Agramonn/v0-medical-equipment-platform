@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { AppLayout } from '@/components/app-layout'
+import { getCurrentUser } from '@/lib/get-current-user'
 import { EquipmentWorkspace } from '@/components/equipment/equipment-workspace'
 import { db } from '@/lib/db'
 import { EquipmentWithDetails } from '@/lib/types'
@@ -78,37 +79,29 @@ async function getEngineers() {
   })
 }
 
-async function getSupervisor() {
-  // TODO: replace with the real logged-in user once auth is implemented (Phase 2)
-  return db.user.findFirst({
-    where: { role: 'SUPERVISOR' },
-    select: { id: true, name: true },
-  })
-}
-
 export default async function EquipmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const user = await getCurrentUser()
   const equipment = await getEquipment(id)
 
   if (!equipment) {
     notFound()
   }
 
-  const [serviceOrders, equipmentList, engineers, supervisor] = await Promise.all([
+  const [serviceOrders, equipmentList, engineers] = await Promise.all([
     getServiceOrdersForEquipment(id),
     getEquipmentListForWizard(),
     getEngineers(),
-    getSupervisor(),
   ])
 
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <EquipmentWorkspace
         equipment={equipment}
         serviceOrders={serviceOrders}
         equipmentList={equipmentList}
         engineers={engineers}
-        currentUserId={supervisor?.id ?? ''}
+        currentUserId={user.id}
       />
     </AppLayout>
   )

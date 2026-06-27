@@ -10,6 +10,7 @@ import {
   UserRole,
 } from '../lib/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
+import bcrypt from 'bcryptjs'
 
 const connectionString = process.env.DATABASE_URL!
 
@@ -19,6 +20,10 @@ if (!connectionString) {
 
 const adapter = new PrismaNeon({ connectionString })
 const prisma = new PrismaClient({ adapter } as any)
+
+async function hashPassword(password: string) {
+  return bcrypt.hash(password, 10)
+}
 
 async function main() {
   console.log('🌱 Starting seed...')
@@ -32,17 +37,19 @@ async function main() {
 
   // ── Users ─────────────────────────────────────────────────
   const supervisor = await prisma.user.create({
-    data: {
-      name: 'Sarah Connor',
-      email: 'sarah.connor@biosupp.mx',
-      role: UserRole.SUPERVISOR,
-    },
-  })
+  data: {
+    name: 'Sarah Connor',
+    email: 'sarah.connor@biosupp.mx',
+    password: await hashPassword('supervisor123'),
+    role: UserRole.SUPERVISOR,
+  },
+})
 
   const engineer1 = await prisma.user.create({
     data: {
       name: 'John Doe',
       email: 'john.doe@biosupp.mx',
+      password: await hashPassword('engineer123'),
       role: UserRole.ENGINEER,
     },
   })
@@ -51,6 +58,7 @@ async function main() {
     data: {
       name: 'Jane Smith',
       email: 'jane.smith@biosupp.mx',
+      password: await hashPassword('engineer123'),
       role: UserRole.ENGINEER,
     },
   })
@@ -59,6 +67,7 @@ async function main() {
     data: {
       name: 'Mike Johnson',
       email: 'mike.johnson@biosupp.mx',
+      password: await hashPassword('engineer123'),
       role: UserRole.ENGINEER,
     },
   })

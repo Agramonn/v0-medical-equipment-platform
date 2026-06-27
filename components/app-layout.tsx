@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -12,7 +12,6 @@ import {
   Wrench,
   Building2,
   Settings,
-  ChevronDown,
   Bell,
   Search,
   Moon,
@@ -27,11 +26,9 @@ import {
   HardHat,
   MapPin,
   Briefcase,
-  CheckSquare,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -66,118 +63,53 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { CommandPalette } from '@/components/command-palette'
+import { logoutAction } from '@/lib/actions/auth'
 
-// Role context
-type UserRole = 'supervisor' | 'engineer'
-
-const RoleContext = React.createContext<{
-  role: UserRole
-  setRole: (role: UserRole) => void
-}>({
-  role: 'supervisor',
-  setRole: () => {},
-})
-
-export function useRole() {
-  return React.useContext(RoleContext)
+type SessionUser = {
+  id: string
+  name: string | null
+  email: string | null
+  role: 'SUPERVISOR' | 'ENGINEER'
 }
 
-// Navigation items for Supervisor
 const supervisorNavItems = [
-  {
-    title: 'Dashboard',
-    href: '/',
-    icon: LayoutDashboard,
-    badge: null,
-  },
-  {
-    title: 'Inventory',
-    href: '/inventory',
-    icon: Package,
-    badge: '2,847',
-  },
-  {
-    title: 'Service Orders',
-    href: '/service-orders',
-    icon: FileText,
-    badge: '12',
-  },
-  {
-    title: 'Technical History',
-    href: '/history',
-    icon: History,
-    badge: null,
-  },
-  {
-    title: 'Contracts',
-    href: '/contracts',
-    icon: Briefcase,
-    badge: '3',
-  },
-  {
-    title: 'AI Assistant',
-    href: '/chat',
-    icon: MessageSquareText,
-    badge: null,
-  },
+  { title: 'Dashboard', href: '/', icon: LayoutDashboard, badge: null },
+  { title: 'Inventory', href: '/inventory', icon: Package, badge: null },
+  { title: 'Service Orders', href: '/service-orders', icon: FileText, badge: null },
+  { title: 'Technical History', href: '/history', icon: History, badge: null },
+  { title: 'Contracts', href: '/contracts', icon: Briefcase, badge: null },
+  { title: 'AI Assistant', href: '/chat', icon: MessageSquareText, badge: null },
 ]
 
-// Navigation items for Field Engineer
 const engineerNavItems = [
-  {
-    title: 'My Services',
-    href: '/engineer',
-    icon: ClipboardList,
-    badge: '5',
-  },
-  {
-    title: 'Weekly Calendar',
-    href: '/engineer/calendar',
-    icon: Calendar,
-    badge: null,
-  },
-  {
-    title: 'Equipment',
-    href: '/inventory',
-    icon: Package,
-    badge: null,
-  },
-  {
-    title: 'AI Assistant',
-    href: '/chat',
-    icon: MessageSquareText,
-    badge: null,
-  },
-  {
-    title: 'Troubleshooting',
-    href: '/troubleshooting',
-    icon: Wrench,
-    badge: null,
-  },
+  { title: 'My Services', href: '/engineer', icon: ClipboardList, badge: null },
+  { title: 'Weekly Calendar', href: '/engineer/calendar', icon: Calendar, badge: null },
+  { title: 'Equipment', href: '/inventory', icon: Package, badge: null },
+  { title: 'AI Assistant', href: '/chat', icon: MessageSquareText, badge: null },
+  { title: 'Troubleshooting', href: '/troubleshooting', icon: Wrench, badge: null },
 ]
 
 const managementNavItems = [
-  {
-    title: 'Organizations',
-    href: '/organizations',
-    icon: Building2,
-    badge: null,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    badge: null,
-  },
+  { title: 'Organizations', href: '/organizations', icon: Building2, badge: null },
+  { title: 'Settings', href: '/settings', icon: Settings, badge: null },
 ]
 
-function AppSidebar() {
+function initials(name: string) {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+function AppSidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname()
   const { state } = useSidebar()
-  const { role, setRole } = useRole()
   const isCollapsed = state === 'collapsed'
+  const isSupervisor = user.role === 'SUPERVISOR'
 
-  const navItems = role === 'supervisor' ? supervisorNavItems : engineerNavItems
+  const navItems = isSupervisor ? supervisorNavItems : engineerNavItems
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -185,7 +117,7 @@ function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={role === 'engineer' ? '/engineer' : '/'} className="flex items-center gap-2">
+              <Link href={isSupervisor ? '/' : '/engineer'} className="flex items-center gap-2">
                 <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Activity className="size-4" />
                 </div>
@@ -198,53 +130,26 @@ function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
 
-        {/* Role Selector */}
+        {/* Role indicator (read-only — defined by the signed-in account) */}
         {!isCollapsed && (
           <div className="px-2 py-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between">
-                  <div className="flex items-center gap-2">
-                    {role === 'supervisor' ? (
-                      <Shield className="size-4 text-primary" />
-                    ) : (
-                      <HardHat className="size-4 text-warning" />
-                    )}
-                    <span className="text-sm">
-                      {role === 'supervisor' ? 'Supervisor' : 'Field Engineer'}
-                    </span>
-                  </div>
-                  <ChevronDown className="size-4 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[200px]">
-                <DropdownMenuLabel>Switch Role</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setRole('supervisor')}
-                  className={cn(role === 'supervisor' && 'bg-accent')}
-                >
-                  <Shield className="mr-2 size-4 text-primary" />
-                  Supervisor
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setRole('engineer')}
-                  className={cn(role === 'engineer' && 'bg-accent')}
-                >
-                  <HardHat className="mr-2 size-4 text-warning" />
-                  Field Engineer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex w-full items-center gap-2 rounded-md border px-3 py-1.5">
+              {isSupervisor ? (
+                <Shield className="size-4 text-primary" />
+              ) : (
+                <HardHat className="size-4 text-warning" />
+              )}
+              <span className="text-sm">
+                {isSupervisor ? 'Supervisor' : 'Field Engineer'}
+              </span>
+            </div>
           </div>
         )}
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            {role === 'supervisor' ? 'Operations' : 'Field Work'}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>{isSupervisor ? 'Operations' : 'Field Work'}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -257,14 +162,6 @@ function AppSidebar() {
                     <Link href={item.href}>
                       <item.icon className="size-4" />
                       <span>{item.title}</span>
-                      {item.badge && !isCollapsed && (
-                        <Badge
-                          variant="secondary"
-                          className="ml-auto text-xs font-normal"
-                        >
-                          {item.badge}
-                        </Badge>
-                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -273,18 +170,14 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {role === 'supervisor' && (
+        {isSupervisor && (
           <SidebarGroup>
             <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {managementNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === item.href}
-                      tooltip={item.title}
-                    >
+                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
                       <Link href={item.href}>
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
@@ -306,22 +199,18 @@ function AppSidebar() {
                 <SidebarMenuButton size="lg" className="w-full">
                   <Avatar className="size-8">
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      JD
+                      {user.name ? initials(user.name) : 'N/A'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start gap-0.5 leading-none">
-                    <span className="font-medium">John Doe</span>
+                    <span className="font-medium">{user.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {role === 'supervisor' ? 'Supervisor' : 'Biomedical Engineer'}
+                      {isSupervisor ? 'Supervisor' : 'Biomedical Engineer'}
                     </span>
                   </div>
-                  <ChevronDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-dropdown-menu-trigger-width]"
-              >
+              <DropdownMenuContent side="top" className="w-[--radix-dropdown-menu-trigger-width]">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
@@ -337,10 +226,12 @@ function AppSidebar() {
                   Help & Support
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  <LogOut className="mr-2 size-4" />
-                  Sign out
-                </DropdownMenuItem>
+                <form action={logoutAction}>
+                  <button type="submit" className="flex w-full items-center px-2 py-1.5 text-sm text-destructive hover:bg-accent rounded-sm">
+                    <LogOut className="mr-2 size-4" />
+                    Sign out
+                  </button>
+                </form>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
@@ -350,9 +241,9 @@ function AppSidebar() {
   )
 }
 
-function TopBar() {
+function TopBar({ user }: { user: SessionUser }) {
   const { theme, setTheme } = useTheme()
-  const { role } = useRole()
+  const isSupervisor = user.role === 'SUPERVISOR'
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -367,9 +258,7 @@ function TopBar() {
         >
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <span className="truncate">
-            {role === 'supervisor'
-              ? 'Search equipment, orders, history...'
-              : 'Search equipment, services...'}
+            {isSupervisor ? 'Search equipment, orders, history...' : 'Search equipment, services...'}
           </span>
           <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-xs sm:flex">
             <span className="text-xs">⌘</span>K
@@ -378,13 +267,13 @@ function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
-        {role === 'engineer' && (
+        {!isSupervisor && (
           <Badge variant="outline" className="hidden sm:flex items-center gap-1.5">
             <MapPin className="size-3" />
             Central Hospital
           </Badge>
         )}
-        
+
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -405,11 +294,7 @@ function TopBar() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">Toggle theme</span>
@@ -425,67 +310,21 @@ function TopBar() {
   )
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [role, setRole] = React.useState<UserRole>('supervisor')
-  const [isHydrated, setIsHydrated] = React.useState(false)
-
-  // Load role from localStorage on mount
-  React.useEffect(() => {
-    const savedRole = localStorage.getItem('medequip-role') as UserRole | null
-    if (savedRole && (savedRole === 'supervisor' || savedRole === 'engineer')) {
-      setRole(savedRole)
-    }
-    setIsHydrated(true)
-  }, [])
-
-  // Save role to localStorage and navigate to the role's landing page
-  const handleSetRole = React.useCallback(
-    (newRole: UserRole) => {
-      if (newRole !== role) {
-        setRole(newRole)
-      }
-    },
-    [role],
-  )
-
-  React.useEffect(() => {
-  if (!isHydrated) return
-
-  localStorage.setItem('medequip-role', role)
-
-  const supervisorOnly = [
-    '/',
-    '/service-orders',
-    '/history',
-    '/contracts',
-    '/organizations',
-    '/settings',
-  ]
-
-  if (role === 'engineer' && supervisorOnly.includes(pathname)) {
-    router.replace('/engineer')
-  } else if (role === 'supervisor' && pathname === '/engineer') {
-    router.replace('/')
-  }
-}, [isHydrated, role, pathname, router])
-
-  // Prevent hydration mismatch by not rendering until client-side
-  if (!isHydrated) {
-    return null
-  }
-
+export function AppLayout({
+  children,
+  user,
+}: {
+  children: React.ReactNode
+  user: SessionUser
+}) {
   return (
-    <RoleContext.Provider value={{ role, setRole: handleSetRole }}>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <TopBar />
-          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
-        </SidebarInset>
-        <CommandPalette />
-      </SidebarProvider>
-    </RoleContext.Provider>
+    <SidebarProvider>
+      <AppSidebar user={user} />
+      <SidebarInset>
+        <TopBar user={user} />
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
+      </SidebarInset>
+      <CommandPalette role={user.role} />
+    </SidebarProvider>
   )
 }
