@@ -89,7 +89,7 @@ function statusLabel(status: string) {
 }
 
 function QrDialog({ equipment }: { equipment: EquipmentWithDetails }) {
-  const payload = `${equipment.id} | ${equipment.name} | ${equipment.serialNumber}`
+  const payload = `${equipment.id} | ${equipment.equipmentModel.name} | ${equipment.serialNumber}`
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -110,7 +110,7 @@ function QrDialog({ equipment }: { equipment: EquipmentWithDetails }) {
             <QRCodeSVG value={payload} size={196} level="M" />
           </div>
           <div className="text-center">
-            <p className="font-medium">{equipment.name}</p>
+            <p className="font-medium">{equipment.equipmentModel.name}</p>
             <p className="font-mono text-xs text-muted-foreground">
               {equipment.serialNumber}
             </p>
@@ -200,10 +200,10 @@ export function GeneralInfoTab({ equipment }: { equipment: EquipmentWithDetails 
           </CardHeader>
           <CardContent>
             <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-              <InfoField label="Equipment Name" value={equipment.name} />
-              <InfoField label="Category" value={equipment.category} />
-              <InfoField label="Manufacturer" value={equipment.manufacturer} />
-              <InfoField label="Model" value={equipment.model} />
+              <InfoField label="Equipment Name" value={equipment.equipmentModel.name} />
+              <InfoField label="Category" value={equipment.equipmentModel.category} />
+              <InfoField label="Manufacturer" value={equipment.equipmentModel.manufacturer} />
+              <InfoField label="Model" value={equipment.equipmentModel.model} />
               <InfoField
                 label="Serial Number"
                 value={<span className="font-mono">{equipment.serialNumber}</span>}

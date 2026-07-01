@@ -65,23 +65,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
-import { ServiceOrderWithRelations } from '@/lib/types'
+import { ServiceOrderWithRelations, EquipmentOption } from '@/lib/types'
 import { CreateServiceOrderWizard } from './create-service-order-wizard'
 import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
 import { ServiceOrderDetailSheet } from './service-order-detail-sheet'
 import { assignOrderToEngineer, cancelServiceOrder } from '@/lib/actions/service-orders'
 
-type EquipmentOption = {
-  id: string
-  name: string
-  manufacturer: string
-  model: string
-  serialNumber: string
-  assetNumber: string
-  department: string
-  organizationId: string
-  organization: { name: string }
-}
 
 type EngineerOption = { id: string; name: string }
 
@@ -196,7 +185,7 @@ export function ServiceOrdersContent({
     if (typeFilter !== 'all' && order.type !== typeFilter) return false
     if (
       query &&
-      !`${order.orderNumber} ${order.equipment.name} ${order.organization.name}`
+      !`${order.orderNumber} ${order.equipment.equipmentModel.name} ${order.organization.name}`
         .toLowerCase()
         .includes(query.toLowerCase())
     )
@@ -375,7 +364,7 @@ export function ServiceOrdersContent({
                       <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
                         <Package className="size-4 text-muted-foreground" />
                       </div>
-                      <span className="font-medium">{order.equipment.name}</span>
+                      <span className="font-medium">{order.equipment.equipmentModel.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -556,7 +545,7 @@ export function ServiceOrdersContent({
             <AlertDialogTitle>Cancel this service order?</AlertDialogTitle>
             <AlertDialogDescription>
               This will close order {orderToCancel?.orderNumber.slice(0, 8)} for{' '}
-              {orderToCancel?.equipment.name}. This action cannot be undone.
+              {orderToCancel?.equipment.equipmentModel.name}. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

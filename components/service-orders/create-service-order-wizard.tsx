@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { createServiceOrder } from '@/lib/actions/service-orders'
 import type { ServiceType as HumanServiceType } from '@/lib/service-order-data'
+import { EquipmentOption } from '@/lib/types'
 
 const STEPS = ['Equipment', 'Service Info', 'Scope of Work', 'Completion'] as const
 
@@ -67,17 +68,6 @@ const humanToCodeType: Record<string, ServiceType> = {
   INSTALLATION: 'INSTALLATION',
 }
 
-type EquipmentOption = {
-  id: string
-  name: string
-  manufacturer: string
-  model: string
-  serialNumber: string
-  assetNumber: string
-  department: string
-  organizationId: string
-  organization: { name: string }
-}
 
 type EngineerOption = { id: string; name: string }
 
@@ -126,11 +116,11 @@ export function CreateServiceOrderWizard({
     const q = equipmentQuery.toLowerCase()
     return equipmentList.filter(
       (e) =>
-        e.name.toLowerCase().includes(q) ||
+        e.equipmentModel.name.toLowerCase().includes(q) ||
         e.serialNumber.toLowerCase().includes(q) ||
         e.assetNumber.toLowerCase().includes(q) ||
-        e.manufacturer.toLowerCase().includes(q) ||
-        e.model.toLowerCase().includes(q)
+        e.equipmentModel.manufacturer.toLowerCase().includes(q) ||
+        e.equipmentModel.model.toLowerCase().includes(q)
     )
   }, [equipmentQuery, equipmentList])
   // Step 2
@@ -237,7 +227,7 @@ export function CreateServiceOrderWizard({
           <DialogTitle>Create Service Order</DialogTitle>
           <DialogDescription>
             An official service record for a medical device.{' '}
-            {selectedEquipment && presetEquipmentId ? `Equipment: ${selectedEquipment.name}` : null}
+            {selectedEquipment && presetEquipmentId ? `Equipment: ${selectedEquipment.equipmentModel.name}` : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -307,7 +297,7 @@ export function CreateServiceOrderWizard({
                         }}
                         className="flex w-full flex-col items-start rounded-md p-2 text-left text-sm hover:bg-accent"
                       >
-                        <span className="font-medium">{e.name}</span>
+                        <span className="font-medium">{e.equipmentModel.name}</span>
                         <span className="text-xs text-muted-foreground">
                           {e.organization.name} · {e.serialNumber}
                         </span>
@@ -326,10 +316,10 @@ export function CreateServiceOrderWizard({
                       </div>
                       <div className="min-w-0 space-y-0.5">
                         <CardTitle className="truncate text-base leading-tight">
-                          {selectedEquipment.name}
+                          {selectedEquipment.equipmentModel.name}
                         </CardTitle>
                         <p className="truncate text-xs text-muted-foreground">
-                          {selectedEquipment.manufacturer} {selectedEquipment.model}
+                          {selectedEquipment.equipmentModel.manufacturer} {selectedEquipment.equipmentModel.model}
                         </p>
                       </div>
                     </div>
@@ -520,7 +510,7 @@ export function CreateServiceOrderWizard({
                   <dl className="divide-y divide-border">
                     <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2">
                       <dt className="text-sm text-muted-foreground">Equipment</dt>
-                      <dd className="text-sm font-medium text-right">{selectedEquipment?.name ?? '—'}</dd>
+                      <dd className="text-sm font-medium text-right">{selectedEquipment?.equipmentModel?.name ?? '—'}</dd>
                     </div>
                     <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2">
                       <dt className="text-sm text-muted-foreground">Type</dt>

@@ -139,10 +139,10 @@ function EquipmentDetailDialog({ equipment }: { equipment: EquipmentWithOrganiza
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5" />
-            {equipment.name}
+            {equipment.equipmentModel.name}
           </DialogTitle>
           <DialogDescription>
-            {equipment.manufacturer} {equipment.model} • {equipment.serialNumber}
+            {equipment.equipmentModel.manufacturer} {equipment.equipmentModel.model} • {equipment.serialNumber}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-120px)]">
@@ -152,137 +152,118 @@ function EquipmentDetailDialog({ equipment }: { equipment: EquipmentWithOrganiza
               <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="general" className="space-y-4 pt-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+            <TabsContent value="general" className="space-y-6 pt-4">
+              <div className="grid gap-6 sm:grid-cols-2">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Equipment Information
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium">Equipment Info</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-0">
-                    <dl className="divide-y divide-border">
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Asset No.</dt>
-                        <dd className="text-sm font-mono font-medium text-right">{equipment.assetNumber}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Manufacturer</dt>
-                        <dd className="text-sm font-medium text-right">{equipment.manufacturer}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Model</dt>
-                        <dd className="text-sm font-medium text-right">{equipment.model}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Serial No.</dt>
-                        <dd className="text-sm font-mono font-medium text-right">{equipment.serialNumber}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Category</dt>
-                        <dd className="text-sm font-medium text-right">{equipment.category}</dd>
-                      </div>
-                    </dl>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">ID</span>
+                      <span className="text-sm font-mono">{equipment.id}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Manufacturer</span>
+                      <span className="text-sm font-medium">{equipment.equipmentModel.manufacturer}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Model</span>
+                      <span className="text-sm font-medium">{equipment.equipmentModel.model}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Serial No.</span>
+                      <span className="text-sm font-mono">{equipment.serialNumber}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Asset No.</span>
+                      <span className="text-sm font-mono">{equipment.assetNumber}</span>
+                    </div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Location & Contract
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium">Location & Contract</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-0">
-                    <dl className="divide-y divide-border">
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Hospital</dt>
-                        <dd className="text-sm font-medium text-right">{equipment.organization.name}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">City</dt>
-                        <dd className="text-sm font-medium text-right">
-                          {equipment.organization.city}, {equipment.organization.state}
-                        </dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Department</dt>
-                        <dd className="text-sm font-medium text-right">{equipment.department}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Contract</dt>
-                        <dd className="text-right">{getContractBadge(equipment.contractType ?? 'No Contract')}</dd>
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-2.5">
-                        <dt className="text-sm text-muted-foreground">Status</dt>
-                        <dd className="text-right">{getStatusBadge(equipment.status)}</dd>
-                      </div>
-                    </dl>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Organization</span>
+                      <span className="text-sm font-medium">{equipment.organization.name}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">City</span>
+                      <span className="text-sm font-medium">
+                        {equipment.organization.city}, {equipment.organization.state}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Department</span>
+                      <span className="text-sm font-medium">{equipment.department}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Contract</span>
+                      {getContractBadge(equipment.contractType ?? 'No contract')}
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Status</span>
+                      {getStatusBadge(equipment.status)}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
 
-            <TabsContent value="maintenance" className="space-y-4 pt-4">
+            <TabsContent value="maintenance" className="space-y-6 pt-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Usage & Maintenance
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Usage & Maintenance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-6 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Hours Used
-                      </p>
+                      <p className="text-sm text-muted-foreground">Hours Used</p>
                       <p className="text-2xl font-semibold">{equipment.hoursUsed.toLocaleString()}</p>
-                      <Progress value={(equipment.hoursUsed / equipment.maxHours) * 100} className="h-1.5" />
+                      <Progress value={(equipment.hoursUsed / equipment.maxHours) * 100} className="h-2" />
                       <p className="text-xs text-muted-foreground">
                         of {equipment.maxHours.toLocaleString()} hours
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Last Service
-                      </p>
-                      <p className="text-2xl font-semibold">
+                      <p className="text-sm text-muted-foreground">Last Service</p>
+                      <p className="text-xl font-semibold">
                         {equipment.lastServiceDate
                           ? equipment.lastServiceDate.toLocaleDateString('en-US')
-                          : '—'}
+                          : 'No record'}
                       </p>
-                      <p className="text-xs text-muted-foreground">Maintenance completed</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Next Service
-                      </p>
-                      <p className="text-2xl font-semibold text-primary">
+                      <p className="text-sm text-muted-foreground">Next Service</p>
+                      <p className="text-xl font-semibold">
                         {equipment.nextServiceDate
                           ? equipment.nextServiceDate.toLocaleDateString('en-US')
-                          : '—'}
+                          : 'Not scheduled'}
                       </p>
-                      <p className="text-xs text-muted-foreground">Scheduled</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="text-sm font-medium">Need more details?</p>
-                    <p className="text-xs text-muted-foreground">
-                      History, manuals, checklist and AI chat in the full workspace
-                    </p>
-                  </div>
-                  <Button asChild>
-                    <Link href={`/equipment/${equipment.id}`}>
-                      <Eye className="mr-2 size-4" />
-                      Open Workspace
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex justify-end gap-4 pt-4">
+                <Button variant="outline" asChild>
+                  <Link href={`/equipment/${equipment.id}`}>
+                    View Workspace
+                  </Link>
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </ScrollArea>
@@ -294,9 +275,11 @@ function EquipmentDetailDialog({ equipment }: { equipment: EquipmentWithOrganiza
 export function InventoryContent({
   equipment,
   organizations,
+  equipmentModels,
 }: {
   equipment: EquipmentWithOrganization[]
   organizations: { id: string; name: string }[]
+  equipmentModels: { id: string; name: string; manufacturer: string; model: string; category: string }[]
 }) {
   const [selectedItems, setSelectedItems] = React.useState<string[]>([])
   const [viewMode, setViewMode] = React.useState<'table' | 'cards'>('table')
@@ -319,9 +302,9 @@ export function InventoryContent({
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return (
-        item.name.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q) ||
-        item.model.toLowerCase().includes(q) ||
+        item.equipmentModel.name.toLowerCase().includes(q) ||
+        item.equipmentModel.manufacturer.toLowerCase().includes(q) ||
+        item.equipmentModel.model.toLowerCase().includes(q) ||
         item.serialNumber.toLowerCase().includes(q) ||
         item.organization.name.toLowerCase().includes(q)
       )
@@ -380,7 +363,10 @@ export function InventoryContent({
             <Download className="mr-2 size-4" />
             Export
           </Button>
-          <AddEquipmentDialog organizations={organizations} />
+          <AddEquipmentDialog
+            organizations={organizations}
+            equipmentModels={equipmentModels}
+          />
         </div>
       </div>
 
@@ -552,10 +538,10 @@ export function InventoryContent({
                         </div>
                         <div>
                           <Link href={`/equipment/${equipment.id}`} className="font-medium hover:text-primary hover:underline">
-                            {equipment.name}
+                            {equipment.equipmentModel.name}
                           </Link>
                           <p className="text-xs text-muted-foreground">
-                            {equipment.manufacturer} {equipment.model}
+                            {equipment.equipmentModel.manufacturer} {equipment.equipmentModel.model}
                           </p>
                         </div>
                       </div>
@@ -615,7 +601,7 @@ export function InventoryContent({
                             >
                               <DeleteEquipmentButton
                                 equipmentId={equipment.id}
-                                equipmentName={equipment.name}
+                                equipmentName={equipment.equipmentModel.name}
                               />
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -641,11 +627,11 @@ export function InventoryContent({
                 </div>
                 <CardTitle className="text-base mt-3">
                   <Link href={`/equipment/${equipment.id}`} className="hover:text-primary hover:underline">
-                    {equipment.name}
+                    {equipment.equipmentModel.name}
                   </Link>
                 </CardTitle>
                 <CardDescription>
-                  {equipment.manufacturer} {equipment.model}
+                  {equipment.equipmentModel.manufacturer} {equipment.equipmentModel.model}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -726,7 +712,7 @@ export function InventoryContent({
       {qrEquipment && (
         <QrCodeDialog
           equipmentId={qrEquipment.id}
-          equipmentName={qrEquipment.name}
+          equipmentName={qrEquipment.equipmentModel.name}
           assetNumber={qrEquipment.assetNumber}
           open={!!qrEquipment}
           onOpenChange={(open) => {

@@ -3,56 +3,113 @@
 import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
-export async function createEquipment(formData: FormData) {
-  const name = formData.get('name') as string
-  const category = formData.get('category') as string
-  const manufacturer = formData.get('manufacturer') as string
-  const model = formData.get('model') as string
-  const serialNumber = formData.get('serialNumber') as string
-  const assetNumber = formData.get('assetNumber') as string
-  const department = formData.get('department') as string
-  const location = formData.get('location') as string
-  const organizationId = formData.get('organizationId') as string
-  const contractType = formData.get('contractType') as string
+type UnitInput = {
+  serialNumber: string
+  assetNumber: string
+}
 
-  if (!name || !serialNumber || !assetNumber || !organizationId) {
-    throw new Error('Faltan campos obligatorios')
+type CreateEquipmentInput = {
+  // Opción A: modelo existente
+  equipmentModelId?: string
+
+  // Opción B: modelo nuevo
+  modelName?: string
+  manufacturer?: string
+  model?: string
+  category?: string
+
+  // Datos compartidos por todas las unidades
+  organizationId: string
+  department: string
+  location: string
+  contractType?: string
+
+  // Una o más unidades
+  units: UnitInput[]
+}
+
+export async function createEquipmentWithUnits(input: CreateEquipmentInput) {
+  const {
+    equipmentModelId,
+    modelName,
+    manufacturer,
+    model,
+    category,
+    organizationId,
+    department,
+    location,
+    contractType,
+    units,
+  } = input
+
+  if (!organizationId || !department || units.length === 0) {
+    throw new Error('Missing required fields')
   }
 
-  try {
-    await db.equipment.create({
+  // Paso 1: Obtener o crear el modelo
+  let resolvedModelId = equipmentModelId
+
+  if (!resolvedModelId) {
+    // Opción B: crear el modelo nuevo al vuelo
+    if (!modelName || !manufacturer || !model || !category) {
+      throw new Error('Model details are required when creating a new model')
+    }
+
+    const newModel = await db.equipmentModel.create({
       data: {
-        name,
-        category,
+        name: modelName,
         manufacturer,
         model,
-        serialNumber,
-        assetNumber,
-        department,
-        location,
-        organizationId,
-        contractType: contractType || null,
-        installDate: new Date(),
-        purchaseDate: new Date(),
-        status: 'OPERATIONAL',
-        hoursUsed: 0,
-        maxHours: 15000,
+        category,
       },
     })
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0]
-      if (field === 'serialNumber') {
-        throw new Error('El número de serie ya existe en el inventario')
-      } else if (field === 'assetNumber') {
-        throw new Error('El número de activo ya existe en el inventario')
+    resolvedModelId = newModel.id
+  }
+
+  // Paso 2: Crear todas las unidades en paralelo
+  const results = await Promise.allSettled(
+    units.map((unit) =>
+      db.equipment.create({
+        data: {
+          serialNumber: unit.serialNumber,
+          assetNumber: unit.assetNumber,
+          department,
+          location: location || '',
+          organizationId,
+          contractType: contractType || null,
+          equipmentModelId: resolvedModelId!,
+          installDate: new Date(),
+          purchaseDate: new Date(),
+          status: 'OPERATIONAL',
+          hoursUsed: 0,
+          maxHours: 15000,
+        },
+      })
+    )
+  )
+
+  // Reportar errores individuales por unidad (ej. serial duplicado)
+  const errors: string[] = []
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const error = result.reason
+      if (error?.code === 'P2002') {
+        const target = error.meta?.target
+        const fieldStr = Array.isArray(target) ? target.join(',') : String(target ?? '')
+
+        if (fieldStr.includes('serialNumber')) {
+          errors.push(`Unit ${index + 1}: Serial number "${units[index].serialNumber}" already exists`)
+        } else if (fieldStr.includes('assetNumber')) {
+          errors.push(`Unit ${index + 1}: Asset number "${units[index].assetNumber}" already exists`)
+        } else {
+          errors.push(`Unit ${index + 1}: Duplicate serial or asset number`)
+        }
       }
-      throw new Error('El valor ya existe en el inventario')
     }
-    if (error.message) {
-      throw error
-    }
-    throw new Error('Error al crear el equipo')
+  })
+
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n'))
   }
 
   revalidatePath('/inventory')
@@ -73,10 +130,6 @@ export async function deleteEquipment(id: string) {
 }
 
 export async function updateEquipment(id: string, formData: FormData) {
-  const name = formData.get('name') as string
-  const category = formData.get('category') as string
-  const manufacturer = formData.get('manufacturer') as string
-  const model = formData.get('model') as string
   const serialNumber = formData.get('serialNumber') as string
   const assetNumber = formData.get('assetNumber') as string
   const department = formData.get('department') as string
@@ -85,7 +138,7 @@ export async function updateEquipment(id: string, formData: FormData) {
   const contractType = formData.get('contractType') as string
   const status = formData.get('status') as string
 
-  if (!name || !serialNumber || !assetNumber || !organizationId) {
+  if (!serialNumber || !assetNumber || !organizationId || !department) {
     throw new Error('Missing required fields')
   }
 
@@ -93,14 +146,10 @@ export async function updateEquipment(id: string, formData: FormData) {
     await db.equipment.update({
       where: { id },
       data: {
-        name,
-        category,
-        manufacturer,
-        model,
         serialNumber,
         assetNumber,
         department,
-        location,
+        location: location || '',
         organizationId,
         contractType: contractType || null,
         status: status as any,
@@ -108,18 +157,16 @@ export async function updateEquipment(id: string, formData: FormData) {
     })
   } catch (error: any) {
     if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0]
-      if (field === 'serialNumber') {
-        throw new Error('El número de serie ya existe en el inventario')
-      } else if (field === 'assetNumber') {
-        throw new Error('El número de activo ya existe en el inventario')
+      const target = error.meta?.target
+      const fieldStr = Array.isArray(target) ? target.join(',') : String(target ?? '')
+      if (fieldStr.includes('serialNumber')) {
+        throw new Error('Serial number already exists in inventory')
+      } else if (fieldStr.includes('assetNumber')) {
+        throw new Error('Asset number already exists in inventory')
       }
-      throw new Error('El valor ya existe en el inventario')
+      throw new Error('Duplicate value in inventory')
     }
-    if (error.message) {
-      throw error
-    }
-    throw new Error('Error al actualizar el equipo')
+    throw new Error(error.message ?? 'Failed to update equipment')
   }
 
   revalidatePath('/inventory')

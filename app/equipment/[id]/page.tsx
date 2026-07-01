@@ -10,6 +10,7 @@ async function getEquipment(id: string): Promise<EquipmentWithDetails | null> {
     where: { id },
     include: {
       organization: true,
+      equipmentModel: true,
       serviceHistory: {
         include: {
           engineer: {
@@ -21,7 +22,7 @@ async function getEquipment(id: string): Promise<EquipmentWithDetails | null> {
     },
   })
 
-  return equipment as EquipmentWithDetails | null
+  return equipment as unknown as EquipmentWithDetails | null
 }
 
 async function getServiceOrdersForEquipment(equipmentId: string) {
@@ -31,9 +32,7 @@ async function getServiceOrdersForEquipment(equipmentId: string) {
       equipment: {
         select: {
           id: true,
-          name: true,
-          manufacturer: true,
-          model: true,
+          equipmentModel: true,
           serialNumber: true,
           assetNumber: true,
           department: true,
@@ -57,17 +56,15 @@ async function getServiceOrdersForEquipment(equipmentId: string) {
 async function getEquipmentListForWizard() {
   return db.equipment.findMany({
     select: {
+      equipmentModel: true,
       id: true,
-      name: true,
-      manufacturer: true,
-      model: true,
       serialNumber: true,
       assetNumber: true,
       department: true,
       organizationId: true,
       organization: { select: { name: true } },
     },
-    orderBy: { name: 'asc' },
+    orderBy: { equipmentModel: { name: 'asc' } },
   })
 }
 

@@ -29,19 +29,8 @@ import {
   StatusBadge,
   TypeBadge,
 } from '@/components/service-orders/service-order-badges'
-import { EquipmentWithDetails, ServiceOrderWithRelations } from '@/lib/types'
+import { EquipmentWithDetails, ServiceOrderWithRelations, EquipmentOption } from '@/lib/types'
 
-type EquipmentOption = {
-  id: string
-  name: string
-  manufacturer: string
-  model: string
-  serialNumber: string
-  assetNumber: string
-  department: string
-  organizationId: string
-  organization: { name: string }
-}
 
 type EngineerOption = { id: string; name: string }
 
@@ -221,7 +210,7 @@ export function ServiceTab({
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Service Orders</CardTitle>
             <CardDescription>
-              All service records for {equipment.name}
+              All service records for {equipment.equipmentModel.name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">

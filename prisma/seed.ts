@@ -13,7 +13,6 @@ import { PrismaNeon } from '@prisma/adapter-neon'
 import bcrypt from 'bcryptjs'
 
 const connectionString = process.env.DATABASE_URL!
-
 if (!connectionString) {
   throw new Error('DATABASE_URL is not defined in .env')
 }
@@ -28,28 +27,34 @@ async function hashPassword(password: string) {
 async function main() {
   console.log('🌱 Starting seed...')
 
+  // Limpieza en el orden correcto para respetar las foreign keys
   await prisma.serviceOrderTimelineEvent.deleteMany()
   await prisma.serviceHistory.deleteMany()
   await prisma.serviceOrder.deleteMany()
   await prisma.equipment.deleteMany()
+  await prisma.manual.deleteMany()
+  await prisma.equipmentModel.deleteMany()
   await prisma.organization.deleteMany()
   await prisma.user.deleteMany()
 
   // ── Users ─────────────────────────────────────────────────
+  const supervisorHash = await hashPassword('supervisor123')
+  const engineerHash = await hashPassword('engineer123')
+
   const supervisor = await prisma.user.create({
-  data: {
-    name: 'Sarah Connor',
-    email: 'sarah.connor@biosupp.mx',
-    password: await hashPassword('supervisor123'),
-    role: UserRole.SUPERVISOR,
-  },
-})
+    data: {
+      name: 'Sarah Connor',
+      email: 'sarah.connor@biosupp.mx',
+      password: supervisorHash,
+      role: UserRole.SUPERVISOR,
+    },
+  })
 
   const engineer1 = await prisma.user.create({
     data: {
       name: 'John Doe',
       email: 'john.doe@biosupp.mx',
-      password: await hashPassword('engineer123'),
+      password: engineerHash,
       role: UserRole.ENGINEER,
     },
   })
@@ -58,7 +63,7 @@ async function main() {
     data: {
       name: 'Jane Smith',
       email: 'jane.smith@biosupp.mx',
-      password: await hashPassword('engineer123'),
+      password: engineerHash,
       role: UserRole.ENGINEER,
     },
   })
@@ -67,7 +72,7 @@ async function main() {
     data: {
       name: 'Mike Johnson',
       email: 'mike.johnson@biosupp.mx',
-      password: await hashPassword('engineer123'),
+      password: engineerHash,
       role: UserRole.ENGINEER,
     },
   })
@@ -101,13 +106,50 @@ async function main() {
 
   console.log('✅ Organizations created')
 
-  // ── Equipment ─────────────────────────────────────────────
-  const ventilador = await prisma.equipment.create({
+  // ── Equipment Models (El Catálogo) ────────────────────────
+  const modelVentilador = await prisma.equipmentModel.create({
     data: {
-      name: 'Ventilator V-2847',
+      name: 'Ventilator',
       category: 'Respiratory Therapy',
       manufacturer: 'Philips',
       model: 'Trilogy Evo',
+    },
+  })
+
+  const modelMonitor = await prisma.equipmentModel.create({
+    data: {
+      name: 'Patient Monitor',
+      category: 'Monitoring',
+      manufacturer: 'GE Healthcare',
+      model: 'CARESCAPE B650',
+    },
+  })
+
+  const modelEcografo = await prisma.equipmentModel.create({
+    data: {
+      name: 'Ultrasound System',
+      category: 'Imaging',
+      manufacturer: 'Siemens',
+      model: 'ACUSON P500',
+    },
+  })
+
+  const modelDesfibrilador = await prisma.equipmentModel.create({
+    data: {
+      name: 'Defibrillator',
+      category: 'Cardiology',
+      manufacturer: 'Zoll',
+      model: 'R Series',
+    },
+  })
+
+  console.log('✅ Equipment Models created')
+
+  // ── Equipment Units (Las unidades físicas) ────────────────
+  const ventilador = await prisma.equipment.create({
+    data: {
+      equipmentModelId: modelVentilador.id,
+      organizationId: hospitalCentral.id,
       serialNumber: 'SN-2847-PHL-001',
       assetNumber: 'AST-100482',
       department: 'ICU',
@@ -120,16 +162,13 @@ async function main() {
       hoursUsed: 8432,
       maxHours: 15000,
       contractType: 'Full Service',
-      organizationId: hospitalCentral.id,
     },
   })
 
   const monitor = await prisma.equipment.create({
     data: {
-      name: 'Patient Monitor MP-4521',
-      category: 'Monitoring',
-      manufacturer: 'GE Healthcare',
-      model: 'CARESCAPE B650',
+      equipmentModelId: modelMonitor.id,
+      organizationId: hospitalCentral.id,
       serialNumber: 'SN-4521-GE-002',
       assetNumber: 'AST-100483',
       department: 'Emergency',
@@ -142,16 +181,13 @@ async function main() {
       hoursUsed: 12500,
       maxHours: 20000,
       contractType: 'Preventive Only',
-      organizationId: hospitalCentral.id,
     },
   })
 
   const ecografo = await prisma.equipment.create({
     data: {
-      name: 'Ultrasound EC-1204',
-      category: 'Imaging',
-      manufacturer: 'Siemens',
-      model: 'ACUSON P500',
+      equipmentModelId: modelEcografo.id,
+      organizationId: clinicaRegional.id,
       serialNumber: 'SN-1204-SIE-003',
       assetNumber: 'AST-200101',
       department: 'Radiology',
@@ -164,16 +200,13 @@ async function main() {
       hoursUsed: 5200,
       maxHours: 25000,
       contractType: 'Full Service',
-      organizationId: clinicaRegional.id,
     },
   })
 
   const desfibrilador = await prisma.equipment.create({
     data: {
-      name: 'Defibrillator D-0892',
-      category: 'Cardiology',
-      manufacturer: 'Zoll',
-      model: 'R Series',
+      equipmentModelId: modelDesfibrilador.id,
+      organizationId: hospitalCivil.id,
       serialNumber: 'SN-0892-ZOL-004',
       assetNumber: 'AST-300201',
       department: 'Emergency',
@@ -186,15 +219,12 @@ async function main() {
       hoursUsed: 1200,
       maxHours: 10000,
       contractType: 'Warranty',
-      organizationId: hospitalCivil.id,
     },
   })
 
-  console.log('✅ Equipment created')
+  console.log('✅ Equipment Units created')
 
-  // ── Service Orders (covering different lifecycle stages) ──
-
-  // OS-001: in progress, corrective, high priority
+  // ── Service Orders ────────────────────────────────────────
   const order1 = await prisma.serviceOrder.create({
     data: {
       type: ServiceOrderType.CORRECTIVE_MAINTENANCE,
@@ -238,7 +268,6 @@ async function main() {
     ],
   })
 
-  // OS-002: assigned, preventive, medium priority
   const order2 = await prisma.serviceOrder.create({
     data: {
       type: ServiceOrderType.PREVENTIVE_MAINTENANCE,
@@ -274,7 +303,6 @@ async function main() {
     ],
   })
 
-  // OS-003: pending parts, corrective, critical
   const order3 = await prisma.serviceOrder.create({
     data: {
       type: ServiceOrderType.CORRECTIVE_MAINTENANCE,
@@ -314,7 +342,6 @@ async function main() {
     ],
   })
 
-  // OS-004: draft, installation, no engineer assigned yet
   const order4 = await prisma.serviceOrder.create({
     data: {
       type: ServiceOrderType.INSTALLATION,
@@ -352,7 +379,7 @@ async function main() {
 
   console.log('✅ Service Orders created')
 
-  // ── Service History (linked to completed orders where relevant) ──
+  // ── Service History ───────────────────────────────────────
   await prisma.serviceHistory.create({
     data: {
       type: ServiceOrderType.PREVENTIVE_MAINTENANCE,

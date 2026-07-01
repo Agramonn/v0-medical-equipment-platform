@@ -21,12 +21,33 @@ model Organization {
   serviceOrders ServiceOrder[]
 }
 
+model EquipmentModel {
+  id           String   @id @default(cuid())
+  name         String   // e.g. "Anesthesia Machine"
+  category     String   // e.g. "Anesthesia"
+  manufacturer String   // e.g. "Penlon"
+  model        String   // e.g. "Prima 320 Advance"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  units   Equipment[]
+  manuals Manual[]
+}
+
+model Manual {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  fileUrl   String?
+  pages     Int?
+  createdAt DateTime @default(now())
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id], onDelete: Cascade)
+}
+
 model Equipment {
   id              String          @id @default(cuid())
-  name            String
-  category        String
-  manufacturer    String
-  model           String
   serialNumber    String          @unique
   assetNumber     String          @unique
   department      String
@@ -41,6 +62,9 @@ model Equipment {
   contractType    String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])

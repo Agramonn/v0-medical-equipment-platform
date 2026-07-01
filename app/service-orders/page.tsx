@@ -9,16 +9,14 @@ async function getServiceOrders(): Promise<ServiceOrderWithRelations[]> {
       equipment: {
         select: {
           id: true,
-          name: true,
-          manufacturer: true,
-          model: true,
+          equipmentModel: true,
           serialNumber: true,
           assetNumber: true,
           department: true,
         },
       },
       organization: { select: { id: true, name: true } },
-      assignedTo: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true } }, 
       createdBy: { select: { id: true, name: true } },
       timelineEvents: {
         include: {
@@ -36,16 +34,14 @@ async function getEquipmentList() {
   return db.equipment.findMany({
     select: {
       id: true,
-      name: true,
-      manufacturer: true,
-      model: true,
+      equipmentModel: true,
       serialNumber: true,
       assetNumber: true,
       department: true,
       organizationId: true,
       organization: { select: { name: true } },
     },
-    orderBy: { name: 'asc' },
+    orderBy: { equipmentModel : { name: 'asc' }},
   })
 }
 

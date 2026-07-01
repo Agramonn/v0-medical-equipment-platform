@@ -44,7 +44,7 @@ import { PartsTab } from './tabs/parts-tab'
 import { ManualsTab } from './tabs/manuals-tab'
 import { ChatTab } from './tabs/chat-tab'
 import { HistoryTab } from './tabs/history-tab'
-import { EquipmentWithDetails } from '@/lib/types'
+import { EquipmentWithDetails, EquipmentOption } from '@/lib/types'
 
 
 const tabs = [
@@ -59,17 +59,6 @@ const tabs = [
 
 import { ServiceOrderWithRelations } from '@/lib/types'
 
-type EquipmentOption = {
-  id: string
-  name: string
-  manufacturer: string
-  model: string
-  serialNumber: string
-  assetNumber: string
-  department: string
-  organizationId: string
-  organization: { name: string }
-}
 
 type EngineerOption = { id: string; name: string }
 
@@ -116,7 +105,7 @@ export function EquipmentWorkspace({
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">{equipment.name}</h1>
+              <h1 className="text-xl font-semibold">{equipment.equipmentModel.name}</h1>
               {/* Status selector (Field Engineer can change it) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -148,7 +137,7 @@ export function EquipmentWorkspace({
               </DropdownMenu>
             </div>
             <p className="text-sm text-muted-foreground">
-              {equipment.manufacturer} {equipment.model} ·{' '}
+              {equipment.equipmentModel.manufacturer} {equipment.equipmentModel.model} ·{' '}
               <span className="font-mono">{equipment.serialNumber}</span>
             </p>
           </div>
