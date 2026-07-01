@@ -46,42 +46,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-<<<<<<< HEAD
 import {
-  serviceOrders,
-  type ServiceOrder,
-  type ServiceOrderStatus,
-} from '@/lib/service-order-data'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Label } from '@/components/ui/label'
+import { ServiceOrderWithRelations, EquipmentOption } from '@/lib/types'
 import { CreateServiceOrderWizard } from './create-service-order-wizard'
+import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
 import { ServiceOrderDetailSheet } from './service-order-detail-sheet'
-import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
+import { assignOrderToEngineer, cancelServiceOrder } from '@/lib/actions/service-orders'
 
-const statusFilters: { value: ServiceOrderStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'All Status' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'assigned', label: 'Assigned' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'pending-parts', label: 'Pending Parts' },
-  { value: 'pending-customer', label: 'Pending Customer' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'pending-signature', label: 'Pending Signature' },
-  { value: 'closed', label: 'Closed' },
-=======
-import { ServiceOrderWithRelations } from '@/lib/types'
-import { CreateServiceOrderWizard } from './create-service-order-wizard'
-import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
-
-type EquipmentOption = {
-  id: string
-  name: string
-  manufacturer: string
-  model: string
-  serialNumber: string
-  assetNumber: string
-  department: string
-  organizationId: string
-  organization: { name: string }
-}
 
 type EngineerOption = { id: string; name: string }
 
@@ -95,7 +84,6 @@ const statusFilters = [
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'PENDING_SIGNATURE', label: 'Pending Signature' },
   { value: 'CLOSED', label: 'Closed' },
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
 ]
 
 interface StatCard {
@@ -103,14 +91,10 @@ interface StatCard {
   count: number
   Icon: typeof FileText
   className: string
-<<<<<<< HEAD
-  filter: ServiceOrderStatus | 'all'
-}
-
-export function ServiceOrdersContent() {
-=======
   filter: string
 }
+
+const ITEMS_PER_PAGE = 10
 
 export function ServiceOrdersContent({
   orders,
@@ -123,29 +107,85 @@ export function ServiceOrdersContent({
   engineers: EngineerOption[]
   currentUserId: string
 }) {
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [typeFilter, setTypeFilter] = React.useState<string>('all')
   const [query, setQuery] = React.useState('')
   const [wizardOpen, setWizardOpen] = React.useState(false)
-<<<<<<< HEAD
-  const [activeOrder, setActiveOrder] = React.useState<ServiceOrder | null>(null)
+  const [activeOrder, setActiveOrder] = React.useState<ServiceOrderWithRelations | null>(null)
   const [detailOpen, setDetailOpen] = React.useState(false)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [assignDialogOpen, setAssignDialogOpen] = React.useState(false)
+  const [selectedOrderForAssign, setSelectedOrderForAssign] = React.useState<ServiceOrderWithRelations | null>(null)
+  const [selectedEngineer, setSelectedEngineer] = React.useState<string>('')
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false)
+  const [orderToCancel, setOrderToCancel] = React.useState<ServiceOrderWithRelations | null>(null)
+  const [isCancelling, setIsCancelling] = React.useState(false)
 
-  const filteredOrders = serviceOrders.filter((order) => {
-=======
+  function openDetail(order: ServiceOrderWithRelations) {
+    setActiveOrder(order)
+    setDetailOpen(true)
+  }
+
+  function openAssignDialog(order: ServiceOrderWithRelations) {
+    setSelectedOrderForAssign(order)
+    setSelectedEngineer(order.assignedTo?.id ?? '')
+    setAssignDialogOpen(true)
+  }
+
+  async function handleAssignEngineer() {
+    if (!selectedOrderForAssign || !selectedEngineer) return
+    try {
+      await assignOrderToEngineer(selectedOrderForAssign.id, selectedEngineer)
+      setAssignDialogOpen(false)
+      setSelectedOrderForAssign(null)
+    } catch (e) {
+      console.error('Failed to assign engineer:', e)
+    }
+  }
+
+  function openCancelDialog(order: ServiceOrderWithRelations) {
+    setOrderToCancel(order)
+    setCancelDialogOpen(true)
+  }
+
+  async function handleConfirmCancel() {
+    if (!orderToCancel) return
+    setIsCancelling(true)
+    try {
+      await cancelServiceOrder(orderToCancel.id)
+      setCancelDialogOpen(false)
+      setOrderToCancel(null)
+    } catch (e) {
+      console.error('Failed to cancel order:', e)
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  async function handleGeneratePDF(order: ServiceOrderWithRelations) {
+    try {
+      const response = await fetch(`/api/service-orders/${order.id}/pdf`, {
+        method: 'GET',
+      })
+      if (!response.ok) throw new Error('Failed to generate PDF')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${order.orderNumber}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Failed to generate PDF:', e)
+    }
+  }
 
   const filteredOrders = orders.filter((order) => {
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
     if (statusFilter !== 'all' && order.status !== statusFilter) return false
     if (typeFilter !== 'all' && order.type !== typeFilter) return false
     if (
       query &&
-<<<<<<< HEAD
-      !`${order.id} ${order.equipment.name} ${order.equipment.hospital}`
-=======
-      !`${order.orderNumber} ${order.equipment.name} ${order.organization.name}`
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
+      !`${order.orderNumber} ${order.equipment.equipmentModel.name} ${order.organization.name}`
         .toLowerCase()
         .includes(query.toLowerCase())
     )
@@ -153,64 +193,24 @@ export function ServiceOrdersContent({
     return true
   })
 
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, typeFilter, query])
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
   const stats: StatCard[] = [
     {
       label: 'Total Orders',
-<<<<<<< HEAD
-      count: serviceOrders.length,
-=======
       count: orders.length,
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
       Icon: FileText,
       className: 'bg-primary/10 text-primary',
       filter: 'all',
     },
     {
       label: 'Assigned',
-<<<<<<< HEAD
-      count: serviceOrders.filter((o) => o.status === 'assigned').length,
-      Icon: UserCog,
-      className: 'bg-secondary text-secondary-foreground',
-      filter: 'assigned',
-    },
-    {
-      label: 'In Progress',
-      count: serviceOrders.filter((o) => o.status === 'in-progress').length,
-      Icon: Wrench,
-      className: 'bg-primary/10 text-primary',
-      filter: 'in-progress',
-    },
-    {
-      label: 'Blocked',
-      count: serviceOrders.filter(
-        (o) => o.status === 'pending-parts' || o.status === 'pending-customer',
-      ).length,
-      Icon: PauseCircle,
-      className: 'bg-warning/10 text-warning',
-      filter: 'pending-parts',
-    },
-    {
-      label: 'Awaiting Review',
-      count: serviceOrders.filter((o) => o.status === 'completed').length,
-      Icon: CheckCircle2,
-      className: 'bg-success/10 text-success',
-      filter: 'completed',
-    },
-    {
-      label: 'Pending Signature',
-      count: serviceOrders.filter((o) => o.status === 'pending-signature').length,
-      Icon: FileSignature,
-      className: 'bg-primary/10 text-primary',
-      filter: 'pending-signature',
-    },
-  ]
-
-  function openDetail(order: ServiceOrder) {
-    setActiveOrder(order)
-    setDetailOpen(true)
-  }
-
-=======
       count: orders.filter((o) => o.status === 'ASSIGNED').length,
       Icon: UserCog,
       className: 'bg-secondary text-secondary-foreground',
@@ -248,7 +248,6 @@ export function ServiceOrdersContent({
     },
   ]
 
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -324,23 +323,11 @@ export function ServiceOrdersContent({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-<<<<<<< HEAD
-                <SelectItem value="Preventive Maintenance">
-                  Preventive Maintenance
-                </SelectItem>
-                <SelectItem value="Corrective Maintenance">
-                  Corrective Maintenance
-                </SelectItem>
-                <SelectItem value="Calibration">Calibration</SelectItem>
-                <SelectItem value="Inspection">Inspection</SelectItem>
-                <SelectItem value="Installation">Installation</SelectItem>
-=======
                 <SelectItem value="PREVENTIVE_MAINTENANCE">Preventive Maintenance</SelectItem>
                 <SelectItem value="CORRECTIVE_MAINTENANCE">Corrective Maintenance</SelectItem>
                 <SelectItem value="CALIBRATION">Calibration</SelectItem>
                 <SelectItem value="INSPECTION">Inspection</SelectItem>
                 <SelectItem value="INSTALLATION">Installation</SelectItem>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
               </SelectContent>
             </Select>
           </div>
@@ -365,38 +352,24 @@ export function ServiceOrdersContent({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.map((order) => (
-<<<<<<< HEAD
-                <TableRow
-                  key={order.id}
-                  className="cursor-pointer"
-                  onClick={() => openDetail(order)}
-                >
-                  <TableCell>
-                    <span className="font-mono font-medium">{order.id}</span>
-=======
-                <TableRow key={order.id}>
+              {paginatedOrders.map((order) => (
+                <TableRow key={order.id} className="cursor-pointer" onClick={() => openDetail(order)}>
                   <TableCell>
                     <span className="font-mono text-xs font-medium">
                       {order.orderNumber.slice(0, 8)}
                     </span>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
                         <Package className="size-4 text-muted-foreground" />
                       </div>
-                      <span className="font-medium">{order.equipment.name}</span>
+                      <span className="font-medium">{order.equipment.equipmentModel.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div>
-<<<<<<< HEAD
-                      <p className="text-sm">{order.equipment.hospital}</p>
-=======
                       <p className="text-sm">{order.organization.name}</p>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       <p className="text-xs text-muted-foreground">
                         {order.equipment.department}
                       </p>
@@ -412,20 +385,12 @@ export function ServiceOrdersContent({
                     <StatusBadge status={order.status} />
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-<<<<<<< HEAD
-                    {order.assignedEngineer ? (
-=======
                     {order.assignedTo ? (
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       <div className="flex items-center gap-2">
                         <div className="flex size-6 items-center justify-center rounded-full bg-primary/10">
                           <User className="size-3 text-primary" />
                         </div>
-<<<<<<< HEAD
-                        <span className="text-sm">{order.assignedEngineer}</span>
-=======
                         <span className="text-sm">{order.assignedTo.name}</span>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">Unassigned</span>
@@ -433,25 +398,12 @@ export function ServiceOrdersContent({
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <span className="text-sm font-medium text-primary">
-<<<<<<< HEAD
-                      {order.scheduledDate}
+                      {order.scheduledAt?.toLocaleDateString('en-US') ?? '—'}
                     </span>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDetail(order)}
-                      >
-=======
-                      {order.scheduledAt?.toLocaleDateString('en-US') ?? '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon">
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
+                      <Button variant="ghost" size="icon" onClick={() => openDetail(order)}>
                         <Eye className="size-4" />
                         <span className="sr-only">View</span>
                       </Button>
@@ -464,32 +416,27 @@ export function ServiceOrdersContent({
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Supervisor Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-<<<<<<< HEAD
                           <DropdownMenuItem onClick={() => openDetail(order)}>
-=======
-                          <DropdownMenuItem>
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                             <Eye className="mr-2 size-4" />
                             View Record
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openAssignDialog(order)}>
                             <UserCog className="mr-2 size-4" />
-<<<<<<< HEAD
-                            {order.assignedEngineer ? 'Reassign' : 'Assign'} Engineer
-=======
                             {order.assignedTo ? 'Reassign' : 'Assign'} Engineer
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem disabled>
                             <Settings2 className="mr-2 size-4" />
                             Edit Order
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem disabled>
                             <Printer className="mr-2 size-4" />
-                            Generate PDF
+                            Generate PDF (coming soon)
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => openCancelDialog(order)}
+                          >
                             <Trash2 className="mr-2 size-4" />
                             Cancel Order
                           </DropdownMenuItem>
@@ -499,16 +446,13 @@ export function ServiceOrdersContent({
                   </TableCell>
                 </TableRow>
               ))}
-<<<<<<< HEAD
-=======
-              {filteredOrders.length === 0 && (
+              {paginatedOrders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     No service orders found.
                   </TableCell>
                 </TableRow>
               )}
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
             </TableBody>
           </Table>
         </CardContent>
@@ -517,33 +461,31 @@ export function ServiceOrdersContent({
       {/* Footer */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-<<<<<<< HEAD
-          Showing {filteredOrders.length} of {serviceOrders.length} orders
-=======
-          Showing {filteredOrders.length} of {orders.length} orders
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)
+          Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredOrders.length)} of {filteredOrders.length} orders
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
             Previous
           </Button>
-          <Button variant="outline" size="sm">
+          <span className="text-sm text-muted-foreground">
+            {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
             Next
           </Button>
         </div>
       </div>
 
-<<<<<<< HEAD
-      <CreateServiceOrderWizard open={wizardOpen} onOpenChange={setWizardOpen} />
-      <ServiceOrderDetailSheet
-        order={activeOrder}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
-    </div>
-  )
-}
-=======
       <CreateServiceOrderWizard
         open={wizardOpen}
         onOpenChange={setWizardOpen}
@@ -551,7 +493,73 @@ export function ServiceOrdersContent({
         engineers={engineers}
         currentUserId={currentUserId}
       />
+      <ServiceOrderDetailSheet
+        order={activeOrder}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        currentUserId={currentUserId}
+        engineers={engineers}
+      />
+
+      {/* Assign Engineer Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedOrderForAssign?.assignedTo ? 'Reassign' : 'Assign'} Engineer
+            </DialogTitle>
+            <DialogDescription>
+              Select an engineer for order {selectedOrderForAssign?.orderNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="engineer-select">Engineer</Label>
+              <Select value={selectedEngineer} onValueChange={setSelectedEngineer}>
+                <SelectTrigger id="engineer-select">
+                  <SelectValue placeholder="Select engineer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {engineers.map((eng) => (
+                    <SelectItem key={eng.id} value={eng.id}>
+                      {eng.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignEngineer} disabled={!selectedEngineer}>
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this service order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will close order {orderToCancel?.orderNumber.slice(0, 8)} for{' '}
+              {orderToCancel?.equipment.equipmentModel.name}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

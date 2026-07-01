@@ -1,24 +1,22 @@
 import { AppLayout } from '@/components/app-layout'
 import { InventoryContent } from '@/components/inventory/inventory-content'
-<<<<<<< HEAD
-
-export default function InventoryPage() {
-  return (
-    <AppLayout>
-      <InventoryContent />
-    </AppLayout>
-  )
-}
-=======
 import { db } from '@/lib/db'
 import { EquipmentWithOrganization } from '@/lib/types'
+import { getCurrentUser } from '@/lib/get-current-user'
 
 async function getEquipment(): Promise<EquipmentWithOrganization[]> {
   const equipment = await db.equipment.findMany({
-    include: { organization: true },
-    orderBy: { name: 'asc' },
+    include: { 
+      organization: true,
+      equipmentModel: true 
+    },
+    orderBy: {
+      equipmentModel: {
+        name: 'asc' 
+      }
+    },
   })
-  return equipment as EquipmentWithOrganization[]
+  return equipment
 }
 
 async function getOrganizations() {
@@ -28,16 +26,34 @@ async function getOrganizations() {
   })
 }
 
+async function getEquipmentModels() {
+  return db.equipmentModel.findMany({
+    select: {
+      id: true,
+      name: true,
+      manufacturer: true,
+      model: true,
+      category: true,
+    },
+    orderBy: { name: 'asc' },
+  })
+}
+
 export default async function InventoryPage() {
-  const [equipment, organizations] = await Promise.all([
+  const [equipment, organizations, equipmentModels] = await Promise.all([
     getEquipment(),
     getOrganizations(),
+    getEquipmentModels(),
   ])
+  const user = await getCurrentUser();
 
   return (
-    <AppLayout>
-      <InventoryContent equipment={equipment} organizations={organizations} />
+    <AppLayout user={user}>
+      <InventoryContent
+        equipment={equipment}
+        organizations={organizations}
+        equipmentModels={equipmentModels}
+      />
     </AppLayout>
   )
 }
->>>>>>> 9263d6b (Persistencia Equipos pendiente ordenes de servicio)

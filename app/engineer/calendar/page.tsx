@@ -1,9 +1,11 @@
 import { AppLayout } from '@/components/app-layout'
 import { EngineerCalendar } from '@/components/engineer/engineer-calendar'
+import { getCurrentUser } from '@/lib/get-current-user'
 
-export default function EngineerCalendarPage() {
+export default async function EngineerCalendarPage() {
+  const user = await getCurrentUser();
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <EngineerCalendar />
     </AppLayout>
   )

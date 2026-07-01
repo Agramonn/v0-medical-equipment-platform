@@ -6,8 +6,7 @@ import {
   ClipboardList,
   FileSignature,
   FileText,
-  Gauge,
-  Image as ImageIcon,
+  Loader2,
   MessageSquareWarning,
   Package,
   PenLine,
@@ -18,7 +17,6 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -28,15 +26,30 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import {
-  completionRequirementLabels,
-  openStatuses,
-  type CompletionRequirements,
-  type ServiceOrder,
-} from '@/lib/service-order-data'
+import { ServiceOrderWithRelations } from '@/lib/types'
+import { updateServiceOrderStatus } from '@/lib/actions/service-orders'
 import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-function SectionField({ label, value }: { label: string; value?: string }) {
+type Status = ServiceOrderWithRelations['status']
+
+const openStatuses: Status[] = [
+  'DRAFT',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'PENDING_PARTS',
+  'PENDING_CUSTOMER',
+  'COMPLETED',
+  'PENDING_SIGNATURE',
+]
+
+function SectionField({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null
   return (
     <div className="space-y-1">
@@ -50,42 +63,65 @@ function SectionField({ label, value }: { label: string; value?: string }) {
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+    <div className="grid grid-cols-[auto_1fr] gap-x-4 items-baseline py-1">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-right font-medium">{value}</span>
     </div>
   )
 }
+
+type EngineerOption = { id: string; name: string }
 
 export function ServiceOrderDetailSheet({
   order,
   open,
   onOpenChange,
+  currentUserId,
+  engineers,
 }: {
-  order: ServiceOrder | null
+  order: ServiceOrderWithRelations | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  currentUserId: string
+  engineers: EngineerOption[]
 }) {
+  const [pendingAction, setPendingAction] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const [selectedEngineerId, setSelectedEngineerId] = React.useState('')
+
   if (!order) return null
 
-  const doc = order.documentation
   const hasDocumentation =
-    doc.findings ||
-    doc.rootCause ||
-    doc.correctiveActions ||
-    doc.recommendations ||
-    doc.partsUsed.length > 0 ||
-    doc.measurements.length > 0
+    order.findings ||
+    order.activities ||
+    order.requiredParts.length > 0
 
   const isOpen = openStatuses.includes(order.status)
 
+  async function handleStatusChange(
+    newStatus: Status,
+    actionKey: string,
+    options?: { assignedToId?: string }
+  ) {
+    setError(null)
+    setPendingAction(actionKey)
+    try {
+      await updateServiceOrderStatus(order!.id, newStatus, currentUserId, options)
+      onOpenChange(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update status')
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-xl">
+      <SheetContent className="flex w-full flex-col overflow-hidden p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 border-b p-6 pb-4">
           <SheetTitle className="flex items-center gap-2">
             <FileText className="size-5" />
-            <span className="font-mono">{order.id}</span>
+            <span className="font-mono text-sm">{order.orderNumber.slice(0, 12)}</span>
           </SheetTitle>
           <SheetDescription>
             Official service record · {order.equipment.name}
@@ -94,11 +130,6 @@ export function ServiceOrderDetailSheet({
             <StatusBadge status={order.status} />
             <PriorityBadge priority={order.priority} />
             <TypeBadge type={order.type} />
-            {order.ticketId && (
-              <Badge variant="outline" className="font-mono">
-                {order.ticketId}
-              </Badge>
-            )}
           </div>
         </SheetHeader>
 
@@ -112,7 +143,7 @@ export function ServiceOrderDetailSheet({
                   Equipment
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
+              <CardContent>
                 <InfoRow label="Name" value={order.equipment.name} />
                 <InfoRow
                   label="Manufacturer / Model"
@@ -126,14 +157,8 @@ export function ServiceOrderDetailSheet({
                   label="Asset"
                   value={<span className="font-mono">{order.equipment.assetNumber}</span>}
                 />
-                <InfoRow
-                  label="Location"
-                  value={`${order.equipment.hospital} · ${order.equipment.department}`}
-                />
-                <InfoRow
-                  label="Contract"
-                  value={<Badge variant="secondary">{order.equipment.contract}</Badge>}
-                />
+                <InfoRow label="Hospital" value={order.organization.name} />
+                <InfoRow label="Department" value={order.equipment.department} />
               </CardContent>
             </Card>
 
@@ -145,15 +170,21 @@ export function ServiceOrderDetailSheet({
                   Service Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
+              <CardContent>
                 <InfoRow
                   label="Assigned Engineer"
-                  value={order.assignedEngineer ?? 'Unassigned'}
+                  value={order.assignedTo?.name ?? 'Unassigned'}
                 />
-                <InfoRow label="Scheduled" value={order.scheduledDate} />
-                <InfoRow label="Estimated Hours" value={`${order.estimatedHours} h`} />
-                <InfoRow label="Service Location" value={order.serviceLocation} />
-                <InfoRow label="Created By" value={order.createdBy} />
+                <InfoRow
+                  label="Scheduled"
+                  value={order.scheduledAt?.toLocaleDateString('en-US') ?? '—'}
+                />
+                <InfoRow
+                  label="Estimated Hours"
+                  value={order.estimatedHours ? `${order.estimatedHours} h` : '—'}
+                />
+                <InfoRow label="Location" value={order.serviceLocation ?? '—'} />
+                <InfoRow label="Created By" value={order.createdBy.name} />
               </CardContent>
             </Card>
 
@@ -166,19 +197,17 @@ export function ServiceOrderDetailSheet({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SectionField label="Objectives" value={order.scope.objectives} />
-                <SectionField label="Activities" value={order.scope.activities} />
-                <SectionField
-                  label="Safety Requirements"
-                  value={order.scope.safetyRequirements}
-                />
-                {order.scope.requiredParts.length > 0 && (
+                <SectionField label="Objectives" value={order.objectives} />
+                <SectionField label="Activities" value={order.activities} />
+                <SectionField label="Safety Requirements" value={order.safetyRequirements} />
+                <SectionField label="Customer Notes" value={order.customerNotes} />
+                {order.requiredParts.length > 0 && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Required Parts
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {order.scope.requiredParts.map((p) => (
+                      {order.requiredParts.map((p) => (
                         <Badge key={p} variant="secondary" className="font-normal">
                           {p}
                         </Badge>
@@ -186,173 +215,38 @@ export function ServiceOrderDetailSheet({
                     </div>
                   </div>
                 )}
-                {order.scope.checklist.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Checklist
-                    </p>
-                    {order.scope.checklist.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2
-                          className={
-                            item.done
-                              ? 'size-4 text-success'
-                              : 'size-4 text-muted-foreground/40'
-                          }
-                        />
-                        <span className={item.done ? '' : 'text-muted-foreground'}>
-                          {item.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                {!order.objectives && !order.activities && order.requiredParts.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No scope of work defined.</p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Completion requirements */}
+            {/* Documentation / findings */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <ShieldCheck className="size-4" />
-                  Required Evidence
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-1.5">
-                {(Object.keys(completionRequirementLabels) as (keyof CompletionRequirements)[])
-                  .filter((key) => order.requirements[key])
-                  .map((key) => (
-                    <Badge key={key} variant="outline">
-                      {completionRequirementLabels[key].replace(' Required', '')}
-                    </Badge>
-                  ))}
-              </CardContent>
-            </Card>
-
-            {/* Service documentation / evidence */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <FileText className="size-4" />
                   Service Documentation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {hasDocumentation ? (
                   <>
-                    <SectionField label="Findings" value={doc.findings} />
-                    <SectionField label="Root Cause" value={doc.rootCause} />
-                    <SectionField
-                      label="Corrective Actions"
-                      value={doc.correctiveActions}
-                    />
-                    <SectionField label="Recommendations" value={doc.recommendations} />
-
-                    {doc.measurements.length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Measurements
-                        </p>
-                        {doc.measurements.map((m) => (
-                          <div
-                            key={m.id}
-                            className="flex items-center justify-between rounded-md border px-3 py-1.5 text-sm"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Gauge className="size-3.5 text-muted-foreground" />
-                              {m.label}
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <span className="font-mono">
-                                {m.value} {m.unit}
-                              </span>
-                              <Badge
-                                className={
-                                  m.pass
-                                    ? 'bg-success/10 text-success'
-                                    : 'bg-destructive/10 text-destructive'
-                                }
-                              >
-                                {m.pass ? 'Pass' : 'Fail'}
-                              </Badge>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {doc.partsUsed.length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Parts Used
-                        </p>
-                        {doc.partsUsed.map((p) => (
-                          <div
-                            key={p.partNumber}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span>{p.description}</span>
-                            <span className="text-muted-foreground">
-                              <span className="font-mono">{p.partNumber}</span> × {p.quantity}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
+                    <SectionField label="Findings" value={order.findings} />
                     <div className="flex flex-wrap gap-4 pt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Wrench className="size-3.5" />
-                        {doc.laborHours} h labor
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ImageIcon className="size-3.5" />
-                        {doc.photos.length} photos
-                      </span>
+                      {order.laborHours !== null && (
+                        <span className="flex items-center gap-1">
+                          <Wrench className="size-3.5" />
+                          {order.laborHours} h labor
+                        </span>
+                      )}
                     </div>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No documentation submitted yet. The engineer will add findings,
-                    measurements, parts and photos during service.
+                    No documentation submitted yet. The engineer will add findings
+                    during service execution.
                   </p>
-                )}
-
-                {/* Signatures */}
-                {(doc.engineerSignature || doc.customerSignature) && (
-                  <>
-                    <Separator />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {doc.engineerSignature && (
-                        <div className="rounded-lg border p-3">
-                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <FileSignature className="size-3.5" />
-                            Engineer
-                          </p>
-                          <p className="mt-1 text-sm font-medium">
-                            {doc.engineerSignature.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.engineerSignature.signedAt}
-                          </p>
-                        </div>
-                      )}
-                      {doc.customerSignature && (
-                        <div className="rounded-lg border p-3">
-                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <FileSignature className="size-3.5" />
-                            Customer
-                          </p>
-                          <p className="mt-1 text-sm font-medium">
-                            {doc.customerSignature.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.customerSignature.role} · {doc.customerSignature.signedAt}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </>
                 )}
               </CardContent>
             </Card>
@@ -364,7 +258,7 @@ export function ServiceOrderDetailSheet({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.timeline.map((event) => (
+                  {order.timelineEvents.map((event) => (
                     <div key={event.id} className="flex items-start gap-3">
                       <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <CheckCircle2 className="size-3.5 text-primary" />
@@ -372,16 +266,18 @@ export function ServiceOrderDetailSheet({
                       <div className="flex-1">
                         <p className="text-sm font-medium">{event.label}</p>
                         <p className="text-xs text-muted-foreground">
-                          {event.by} · {event.at}
+                          {event.byUser?.name ?? 'System'} ·{' '}
+                          {event.createdAt.toLocaleString('en-US')}
                         </p>
                         {event.note && (
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {event.note}
-                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{event.note}</p>
                         )}
                       </div>
                     </div>
                   ))}
+                  {order.timelineEvents.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -393,34 +289,156 @@ export function ServiceOrderDetailSheet({
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Supervisor Actions
           </p>
+          {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" disabled={!isOpen}>
-              <UserCog className="mr-2 size-4" />
-              {order.assignedEngineer ? 'Reassign' : 'Assign'} Engineer
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={order.status !== 'completed'}
-            >
-              <MessageSquareWarning className="mr-2 size-4" />
-              Request Info
-            </Button>
-            <Button size="sm" disabled={order.status !== 'completed'}>
-              <CheckCircle2 className="mr-2 size-4" />
-              Approve Completion
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={order.status !== 'pending-signature'}
-            >
-              <PenLine className="mr-2 size-4" />
-              Close Order
-            </Button>
-            <Button variant="outline" size="sm" className="col-span-2">
+            {order.status === 'DRAFT' && (
+              <div className="col-span-2 space-y-2">
+                <Select value={selectedEngineerId} onValueChange={setSelectedEngineerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select engineer to assign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {engineers.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={!selectedEngineerId || pendingAction !== null}
+                  onClick={() =>
+                    handleStatusChange('ASSIGNED', 'assign', { assignedToId: selectedEngineerId })
+                  }
+                >
+                  {pendingAction === 'assign' ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <UserCog className="mr-2 size-4" />
+                  )}
+                  Assign Engineer
+                </Button>
+              </div>
+            )}
+            {order.status === 'ASSIGNED' && (
+              <Button
+                size="sm"
+                className="col-span-2"
+                onClick={() => handleStatusChange('IN_PROGRESS', 'start')}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === 'start' ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Wrench className="mr-2 size-4" />
+                )}
+                Mark In Progress
+              </Button>
+            )}
+
+            {order.status === 'IN_PROGRESS' && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => handleStatusChange('COMPLETED', 'complete')}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === 'complete' ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="mr-2 size-4" />
+                  )}
+                  Mark Completed
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange('PENDING_PARTS', 'pending-parts')}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === 'pending-parts' ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <MessageSquareWarning className="mr-2 size-4" />
+                  )}
+                  Pause: Pending Parts
+                </Button>
+              </>
+            )}
+
+            {(order.status === 'PENDING_PARTS' || order.status === 'PENDING_CUSTOMER') && (
+              <Button
+                size="sm"
+                className="col-span-2"
+                onClick={() => handleStatusChange('IN_PROGRESS', 'resume')}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === 'resume' ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Wrench className="mr-2 size-4" />
+                )}
+                Resume Work
+              </Button>
+            )}
+
+            {order.status === 'COMPLETED' && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => handleStatusChange('PENDING_SIGNATURE', 'approve')}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === 'approve' ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="mr-2 size-4" />
+                  )}
+                  Approve Completion
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange('PENDING_CUSTOMER', 'request-info')}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === 'request-info' ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <MessageSquareWarning className="mr-2 size-4" />
+                  )}
+                  Request More Info
+                </Button>
+              </>
+            )}
+
+            {order.status === 'PENDING_SIGNATURE' && (
+              <Button
+                size="sm"
+                className="col-span-2"
+                onClick={() => handleStatusChange('CLOSED', 'close')}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === 'close' ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <PenLine className="mr-2 size-4" />
+                )}
+                Close Order
+              </Button>
+            )}
+
+            {order.status === 'CLOSED' && (
+              <p className="col-span-2 text-center text-sm text-muted-foreground">
+                This order is closed and archived.
+              </p>
+            )}
+
+            <Button variant="outline" size="sm" className="col-span-2" disabled>
               <FileText className="mr-2 size-4" />
-              Generate PDF Report
+              Generate PDF Report (coming soon)
             </Button>
           </div>
         </div>

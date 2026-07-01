@@ -1,9 +1,12 @@
 import { AppLayout } from '@/components/app-layout'
 import { SettingsContent } from '@/components/settings/settings-content'
+import { getCurrentUser } from '@/lib/get-current-user'
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const user = await getCurrentUser();
+
   return (
-    <AppLayout>
+    <AppLayout user={user}>
       <SettingsContent />
     </AppLayout>
   )

@@ -1,9 +1,5 @@
 export type EquipmentWithOrganization = {
   id: string
-  name: string
-  category: string
-  manufacturer: string
-  model: string
   serialNumber: string
   assetNumber: string
   department: string
@@ -16,6 +12,13 @@ export type EquipmentWithOrganization = {
   nextServiceDate: Date | null
   hoursUsed: number
   maxHours: number
+  equipmentModel: {
+    id: string
+    name: string
+    category: string
+    manufacturer: string
+    model: string
+  }
   organization: {
     id: string
     name: string
@@ -66,12 +69,14 @@ export type ServiceOrderWithRelations = {
   createdAt: Date
   equipment: {
     id: string
-    name: string
-    manufacturer: string
-    model: string
     serialNumber: string
     assetNumber: string
     department: string
+    equipmentModel: {
+      name: string
+      manufacturer: string
+      model: string
+    }
   }
   organization: {
     id: string
@@ -85,4 +90,30 @@ export type ServiceOrderWithRelations = {
     id: string
     name: string
   }
+  timelineEvents: {
+    id: string
+    label: string
+    role: 'SUPERVISOR' | 'ENGINEER' | 'SYSTEM' | 'CUSTOMER'
+    note: string | null
+    createdAt: Date
+    byUser: { id: string; name: string } | null
+  }[]
+}
+
+export type EquipmentModel = {
+  id: string
+  name: string
+  category: string
+  manufacturer: string
+  model: string
+}
+
+export type EquipmentOption = {
+  id: string
+  equipmentModel: EquipmentModel 
+  serialNumber: string
+  assetNumber: string
+  department: string
+  organizationId: string
+  organization: { name: string }
 }

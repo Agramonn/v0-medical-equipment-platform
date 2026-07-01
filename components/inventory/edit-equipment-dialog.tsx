@@ -1,11 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import { Settings2, Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle, Check, ChevronsUpDown, Package } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -21,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { updateEquipment } from '@/lib/actions/equipment'
 import { EquipmentWithOrganization } from '@/lib/types'
 
-type Organization = {
-  id: string
-  name: string
-}
+type Organization = { id: string; name: string }
 
 export function EditEquipmentDialog({
   equipment,
@@ -42,6 +43,20 @@ export function EditEquipmentDialog({
 }) {
   const [isPending, setIsPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [hospitalSearch, setHospitalSearch] = React.useState(equipment.organization.name)
+  const [hospitalOpen, setHospitalOpen] = React.useState(false)
+  const [selectedHospital, setSelectedHospital] = React.useState(equipment.organization.id)
+
+  const filteredHospitals = organizations.filter((org) =>
+    org.name.toLowerCase().includes(hospitalSearch.toLowerCase())
+  )
+
+  // Reset state when equipment changes
+  React.useEffect(() => {
+    setHospitalSearch(equipment.organization.name)
+    setSelectedHospital(equipment.organization.id)
+    setError(null)
+  }, [equipment.id])
 
   async function handleSubmit(formData: FormData) {
     setError(null)
@@ -58,67 +73,106 @@ export function EditEquipmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Equipment</DialogTitle>
+          <DialogTitle>Edit Equipment Unit</DialogTitle>
           <DialogDescription>
-            Update the details for {equipment.name}.
+            Update the physical details of this unit. Model information is shared across all units.
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Equipment Name *</Label>
-              <Input id="edit-name" name="name" defaultValue={equipment.name} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">Category *</Label>
-              <Input id="edit-category" name="category" defaultValue={equipment.category} required />
+        <form action={handleSubmit} className="space-y-5">
+
+          {/* Model info — read only */}
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Equipment Model (shared — not editable here)
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <Package className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">{equipment.equipmentModel.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {equipment.equipmentModel.manufacturer} · {equipment.equipmentModel.model}
+                </p>
+              </div>
+              <Badge variant="secondary" className="ml-auto">
+                {equipment.equipmentModel.category}
+              </Badge>
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-manufacturer">Manufacturer *</Label>
-              <Input id="edit-manufacturer" name="manufacturer" defaultValue={equipment.manufacturer} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-model">Model *</Label>
-              <Input id="edit-model" name="model" defaultValue={equipment.model} required />
-            </div>
-          </div>
+          <Separator />
 
+          {/* Unit-specific fields */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-serialNumber">Serial Number *</Label>
-              <Input id="edit-serialNumber" name="serialNumber" defaultValue={equipment.serialNumber} required />
+              <Input
+                id="edit-serialNumber"
+                name="serialNumber"
+                defaultValue={equipment.serialNumber}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-assetNumber">Asset Number *</Label>
-              <Input id="edit-assetNumber" name="assetNumber" defaultValue={equipment.assetNumber} required />
+              <Input
+                id="edit-assetNumber"
+                name="assetNumber"
+                defaultValue={equipment.assetNumber}
+                required
+              />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-organizationId">Hospital *</Label>
-              <Select name="organizationId" defaultValue={equipment.organization.id} required>
-                <SelectTrigger id="edit-organizationId">
-                  <SelectValue placeholder="Select a hospital" />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Hospital *</Label>
+              <div className="relative">
+                <Input
+                  placeholder="Search hospital..."
+                  value={hospitalSearch}
+                  onChange={(e) => {
+                    setHospitalSearch(e.target.value)
+                    setHospitalOpen(true)
+                  }}
+                  onFocus={() => setHospitalOpen(true)}
+                  className="pr-10"
+                />
+                <ChevronsUpDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                {hospitalOpen && filteredHospitals.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-background border border-input rounded-md shadow-md mt-1 max-h-48 overflow-y-auto">
+                    {filteredHospitals.map((hospital) => (
+                      <button
+                        key={hospital.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedHospital(hospital.id)
+                          setHospitalSearch(hospital.name)
+                          setHospitalOpen(false)
+                        }}
+                        className={cn(
+                          'w-full text-left px-3 py-2 hover:bg-accent text-sm flex items-center justify-between',
+                          selectedHospital === hospital.id && 'bg-accent'
+                        )}
+                      >
+                        <span>{hospital.name}</span>
+                        {selectedHospital === hospital.id && (
+                          <Check className="size-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <input type="hidden" name="organizationId" value={selectedHospital} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status *</Label>
-              <Select name="status" defaultValue={equipment.status} required>
+              <Select name="status" defaultValue={equipment.status}>
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -135,20 +189,44 @@ export function EditEquipmentDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-department">Department *</Label>
-              <Input id="edit-department" name="department" defaultValue={equipment.department} required />
+              <Input
+                id="edit-department"
+                name="department"
+                defaultValue={equipment.department}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-contractType">Contract Type</Label>
-              <Input id="edit-contractType" name="contractType" defaultValue={equipment.contractType ?? ''} />
+              <Select name="contractType" defaultValue={equipment.contractType ?? ''}>
+                <SelectTrigger id="edit-contractType">
+                  <SelectValue placeholder="Select contract" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Full Service">Full Service</SelectItem>
+                  <SelectItem value="Preventive Only">Preventive Only</SelectItem>
+                  <SelectItem value="Parts Only">Parts Only</SelectItem>
+                  <SelectItem value="Warranty">Warranty</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-location">Physical Location</Label>
-            <Input id="edit-location" name="location" defaultValue={equipment.location} />
+            <Input
+              id="edit-location"
+              name="location"
+              defaultValue={equipment.location}
+            />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
