@@ -3,32 +3,22 @@
 import * as React from 'react'
 import {
   AlertTriangle,
-  ArrowRight,
   Building2,
   CalendarClock,
   CheckCircle2,
-  ClipboardList,
-  DollarSign,
+  Download,
   Eye,
   FileText,
   Plus,
   Search,
-  ShieldCheck,
-  Sparkles,
   Wrench,
+  XCircle,
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -37,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -45,450 +34,381 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
 import {
-  contracts,
-  contractStatusConfig,
-  coverageTypeConfig,
-  pmPlans,
-  daysUntil,
-  isDueForGeneration,
-  type Contract,
-  type ContractStatus,
-} from '@/lib/contract-data'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { ContractWithRelations, EquipmentForContract } from '@/app/contracts/page'
+import { AddContractDialog } from './add-contracts-dialog'
+import { ContractDetailSheet } from './contract-detail-sheet'
+import { deleteContract, updateContractStatus } from '@/lib/actions/contracts'
 
-function ContractStatusBadge({ status }: { status: ContractStatus }) {
-  const meta = contractStatusConfig[status]
-  return <Badge className={meta.className}>{meta.label}</Badge>
+type Organization = { id: string; name: string; city: string; state: string }
+
+
+const typeLabels: Record<string, string> = {
+  PUBLIC_BID: 'Public Bid',
+  DIRECT_AWARD: 'Direct Award',
+  LIMITED_TENDER: 'Limited Tender',
+  LOAN_AGREEMENT: 'Loan Agreement',
+  PRIVATE: 'Private',
 }
 
-function CoverageBadge({ type }: { type: Contract['coverageType'] }) {
-  const meta = coverageTypeConfig[type]
+const statusConfig: Record<string, { label: string; className: string; Icon: typeof CheckCircle2 }> = {
+  ACTIVE: { label: 'Active', className: 'bg-success/10 text-success', Icon: CheckCircle2 },
+  EXPIRED: { label: 'Expired', className: 'bg-muted text-muted-foreground', Icon: XCircle },
+  CANCELLED: { label: 'Cancelled', className: 'bg-destructive/10 text-destructive', Icon: XCircle },
+  DRAFT: { label: 'Draft', className: 'bg-warning/10 text-warning', Icon: AlertTriangle },
+}
+
+function daysUntil(date: Date) {
+  return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+}
+
+function ContractStatusBadge({ status }: { status: string }) {
+  const meta = statusConfig[status] ?? statusConfig.DRAFT
   return (
-    <Badge variant="outline" className={meta.className}>
-      {meta.short}
+    <Badge className={meta.className}>
+      <meta.Icon className="mr-1 size-3" />
+      {meta.label}
     </Badge>
   )
 }
 
-const stats = [
-  {
-    title: 'Total Contract Value',
-    value: `$${(contracts.reduce((s, c) => s + c.value, 0) / 1000).toFixed(0)}K`,
-    icon: DollarSign,
-    tone: 'success' as const,
-  },
-  {
-    title: 'Active Contracts',
-    value: String(contracts.filter((c) => c.status === 'active').length),
-    icon: FileText,
-    tone: 'neutral' as const,
-  },
-  {
-    title: 'Expiring Soon',
-    value: String(contracts.filter((c) => c.status === 'expiring-soon').length),
-    icon: AlertTriangle,
-    tone: 'warning' as const,
-  },
-  {
-    title: 'PM Plans',
-    value: String(pmPlans.length),
-    icon: CalendarClock,
-    tone: 'primary' as const,
-  },
-]
-
-const toneClasses: Record<string, { bg: string; text: string }> = {
-  success: { bg: 'bg-success/10', text: 'text-success' },
-  warning: { bg: 'bg-warning/10', text: 'text-warning' },
-  primary: { bg: 'bg-primary/10', text: 'text-primary' },
-  neutral: { bg: 'bg-muted', text: 'text-muted-foreground' },
+function ExpiryBadge({ endDate }: { endDate: Date }) {
+  const days = daysUntil(endDate)
+  if (days < 0) return <span className="text-sm text-muted-foreground">Expired</span>
+  if (days <= 30) return <span className="text-sm font-medium text-destructive">{days}d left</span>
+  if (days <= 90) return <span className="text-sm font-medium text-warning">{days}d left</span>
+  return <span className="text-sm text-muted-foreground">{days}d left</span>
 }
 
-export function ContractsContent() {
-  const [statusFilter, setStatusFilter] = React.useState<string>('all')
-  const [search, setSearch] = React.useState('')
+export function ContractsContent({
+  contracts,
+  organizations,
+  equipmentByOrg,
+}: {
+  contracts: ContractWithRelations[]
+  organizations: Organization[]
+  equipmentByOrg: EquipmentForContract[]
+}) {
+  const [query, setQuery] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState('all')
+  const [typeFilter, setTypeFilter] = React.useState('all')
+  const [addOpen, setAddOpen] = React.useState(false)
+  const [activeContract, setActiveContract] = React.useState<ContractWithRelations | null>(null)
+  const [detailOpen, setDetailOpen] = React.useState(false)
+  const [contractToDelete, setContractToDelete] = React.useState<ContractWithRelations | null>(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const filteredContracts = contracts.filter((contract) => {
-    if (statusFilter !== 'all' && contract.status !== statusFilter) return false
-    if (
-      search &&
-      !contract.customerName.toLowerCase().includes(search.toLowerCase()) &&
-      !contract.contractNumber.toLowerCase().includes(search.toLowerCase())
-    )
-      return false
+  const filtered = contracts.filter((c) => {
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false
+    if (typeFilter !== 'all' && c.type !== typeFilter) return false
+    if (query) {
+      const q = query.toLowerCase()
+      return (
+        c.contractNumber.toLowerCase().includes(q) ||
+        c.client.name.toLowerCase().includes(q)
+      )
+    }
     return true
   })
 
-  const allLineItems = contracts.flatMap((c) =>
-    c.lineItems.map((li) => ({ ...li, customerName: c.customerName })),
-  )
+  const stats = {
+    total: contracts.length,
+    active: contracts.filter((c) => c.status === 'ACTIVE').length,
+    expiringSoon: contracts.filter((c) => {
+      const days = daysUntil(c.endDate)
+      return c.status === 'ACTIVE' && days >= 0 && days <= 90
+    }).length,
+    expired: contracts.filter((c) => c.status === 'EXPIRED' || daysUntil(c.endDate) < 0).length,
+  }
 
-  const dueSoon = pmPlans.filter((p) => isDueForGeneration(p, 30))
+  async function handleDelete() {
+    if (!contractToDelete) return
+    setIsDeleting(true)
+    try {
+      await deleteContract(contractToDelete.id)
+      setContractToDelete(null)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">
-            Contracts &amp; Maintenance Planning
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Contracts</h1>
           <p className="text-muted-foreground">
-            Contracts define maintenance obligations. Preventive maintenance
-            originates here, not from service orders.
+            Manage service contracts, warranties and coverage agreements
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 size-4" />
-          New Contract
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 size-4" />
+            Export
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 size-4" />
+            New Contract
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const tone = toneClasses[stat.tone]
-          return (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className={cn('rounded-lg p-2', tone.bg)}>
-                    <stat.icon className={cn('size-5', tone.text)} />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <FileText className="size-5 text-primary" />
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">{stats.total}</p>
+                <p className="text-sm text-muted-foreground">Total Contracts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-success/10 p-2">
+                <CheckCircle2 className="size-5 text-success" />
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">{stats.active}</p>
+                <p className="text-sm text-muted-foreground">Active</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-warning/10 p-2">
+                <CalendarClock className="size-5 text-warning" />
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">{stats.expiringSoon}</p>
+                <p className="text-sm text-muted-foreground">Expiring in 90d</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-muted p-2">
+                <XCircle className="size-5 text-muted-foreground" />
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">{stats.expired}</p>
+                <p className="text-sm text-muted-foreground">Expired</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="contracts" className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
-            <TabsTrigger value="contracts">Contracts</TabsTrigger>
-            <TabsTrigger value="coverage">Covered Equipment</TabsTrigger>
-            <TabsTrigger value="pm-plans">PM Plans</TabsTrigger>
-          </TabsList>
-          <div className="flex items-center gap-2">
-            <div className="relative max-w-sm">
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search contracts..."
+                placeholder="Search by number or client..."
                 className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="expiring-soon">Expiring Soon</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="PUBLIC_BID">Public Bid</SelectItem>
+                <SelectItem value="DIRECT_AWARD">Direct Award</SelectItem>
+                <SelectItem value="LIMITED_TENDER">Limited Tender</SelectItem>
+                <SelectItem value="LOAN_AGREEMENT">Loan Agreement</SelectItem>
+                <SelectItem value="PRIVATE">Private</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Contracts table */}
-        <TabsContent value="contracts" className="space-y-4">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Contract</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Coverage Type</TableHead>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContracts.map((contract) => {
-                    const remaining = daysUntil(contract.endDate)
-                    return (
-                      <TableRow key={contract.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-muted p-2">
-                              <FileText className="size-4 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{contract.contractNumber}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {contract.id}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {contract.customerName}
-                        </TableCell>
-                        <TableCell>
-                          <CoverageBadge type={contract.coverageType} />
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {contract.lineItems.length}
-                        </TableCell>
-                        <TableCell className="font-medium tabular-nums">
-                          {contract.value > 0
-                            ? `$${(contract.value / 1000).toFixed(0)}K`
-                            : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <ContractStatusBadge status={contract.status} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="tabular-nums">{contract.endDate}</p>
-                            {remaining > 0 ? (
-                              <p
-                                className={cn(
-                                  'text-xs',
-                                  remaining <= 90
-                                    ? 'text-warning'
-                                    : 'text-muted-foreground',
-                                )}
-                              >
-                                {remaining} days left
-                              </p>
-                            ) : (
-                              <p className="text-xs text-destructive">Expired</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="size-4" />
-                            <span className="sr-only">View contract</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Contract No.</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Coverage</TableHead>
+                <TableHead>Start</TableHead>
+                <TableHead>End</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((contract) => (
+                <TableRow
+                  key={contract.id}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setActiveContract(contract)
+                    setDetailOpen(true)
+                  }}
+                >
+                  <TableCell>
+                    <span className="font-mono text-sm font-medium">
+                      {contract.contractNumber}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm font-medium">{contract.client.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {contract.client.city}, {contract.client.state}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {typeLabels[contract.type] ?? contract.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {contract.equipmentCoverage.length} model{contract.equipmentCoverage.length !== 1 ? 's' : ''}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {new Date(contract.startDate).toLocaleDateString('en-US')}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      <p className="text-sm">
+                        {new Date(contract.endDate).toLocaleDateString('en-US')}
+                      </p>
+                      <ExpiryBadge endDate={contract.endDate} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {contract.totalValue
+                        ? `$${contract.totalValue.toLocaleString()} ${contract.currency}`
+                        : <span className="text-muted-foreground">—</span>}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <ContractStatusBadge status={contract.status} />
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setActiveContract(contract)
+                        setDetailOpen(true)
+                      }}
+                    >
+                      <Eye className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
+                    No contracts found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        {/* Coverage (line items) */}
-        <TabsContent value="coverage" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Covered Equipment &amp; Obligations
-              </CardTitle>
-              <CardDescription>
-                Each contract line item defines the maintenance obligations
-                (PM frequency, calibration, SLA) for a piece of equipment.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>PM Frequency</TableHead>
-                    <TableHead>Calibration</TableHead>
-                    <TableHead>Included Visits</TableHead>
-                    <TableHead>Parts</TableHead>
-                    <TableHead>SLA</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allLineItems.map((li) => (
-                    <TableRow key={li.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Wrench className="size-4 text-muted-foreground" />
-                          <span className="font-medium">{li.equipmentName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{li.customerName}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{li.pmFrequency}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {li.calibrationFrequency === 'None' ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <Badge variant="outline">{li.calibrationFrequency}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        {li.includedVisits}/yr
-                      </TableCell>
-                      <TableCell className="text-sm">{li.partsCoverage}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {li.sla}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {filtered.length} of {contracts.length} contracts
+        </p>
+      </div>
 
-        {/* PM Plans */}
-        <TabsContent value="pm-plans" className="space-y-4">
-          <Card className="border-primary/20 bg-primary/[0.03]">
-            <CardContent className="flex items-start gap-3 p-4">
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Sparkles className="size-4 text-primary" />
-              </div>
-              <div className="text-sm">
-                <p className="font-medium">Preventive maintenance originates here</p>
-                <p className="text-muted-foreground">
-                  PM Plans are derived from active contracts. They are architected
-                  to automatically generate Service Orders when due — generation is
-                  prepared but not yet enabled.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      <AddContractDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        organizations={organizations}
+        equipmentByOrg={equipmentByOrg}
+      />
 
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Plan Type</TableHead>
-                    <TableHead>Origin Contract</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Last Service</TableHead>
-                    <TableHead>Next Due</TableHead>
-                    <TableHead>Upcoming</TableHead>
-                    <TableHead>Generation</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pmPlans.map((plan) => {
-                    const remaining = daysUntil(plan.nextDueDate)
-                    const due = isDueForGeneration(plan, 30)
-                    return (
-                      <TableRow key={plan.id}>
-                        <TableCell className="font-medium">
-                          {plan.equipmentName}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              plan.planType === 'Calibration'
-                                ? 'bg-warning/10 text-warning'
-                                : 'bg-success/10 text-success'
-                            }
-                          >
-                            {plan.planType === 'Calibration'
-                              ? 'Calibration'
-                              : 'Preventive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="font-mono">{plan.contractNumber}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {plan.customerName}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{plan.frequency}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm tabular-nums text-muted-foreground">
-                          {plan.lastServiceDate ?? 'No service yet'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="tabular-nums">{plan.nextDueDate}</p>
-                            <p
-                              className={cn(
-                                'text-xs',
-                                remaining <= 14
-                                  ? 'text-destructive'
-                                  : remaining <= 30
-                                    ? 'text-warning'
-                                    : 'text-muted-foreground',
-                              )}
-                            >
-                              {remaining > 0 ? `in ${remaining} days` : 'overdue'}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {plan.upcomingPmCount}
-                        </TableCell>
-                        <TableCell>
-                          {!plan.autoGenerateEnabled ? (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Manual
-                            </Badge>
-                          ) : due ? (
-                            <Badge className="bg-primary/10 text-primary">
-                              <CalendarClock className="mr-1 size-3" />
-                              Due for SO
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-success">
-                              <CheckCircle2 className="mr-1 size-3" />
-                              Scheduled
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <ContractDetailSheet
+        contract={activeContract}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onDelete={(c) => {
+          setDetailOpen(false)
+          setContractToDelete(c)
+        }}
+      />
 
-      {/* Upcoming PM generation alert */}
-      {dueSoon.length > 0 && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <ClipboardList className="mt-0.5 size-5 text-primary" />
-                <div>
-                  <p className="font-medium">
-                    {dueSoon.length} PM plan{dueSoon.length > 1 ? 's' : ''} due within
-                    30 days
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    These obligations will generate Service Orders once automatic
-                    generation is enabled. Review the PM Plans tab to schedule.
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Review Plans
-                <ArrowRight className="ml-2 size-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <AlertDialog
+        open={!!contractToDelete}
+        onOpenChange={(o) => { if (!o) setContractToDelete(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete contract {contractToDelete?.contractNumber}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

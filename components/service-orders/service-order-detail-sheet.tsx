@@ -124,7 +124,7 @@ export function ServiceOrderDetailSheet({
             <span className="font-mono text-sm">{order.orderNumber.slice(0, 12)}</span>
           </SheetTitle>
           <SheetDescription>
-            Official service record · {order.equipment.name}
+            Official service record · {order.equipment.equipmentModel.name}
           </SheetDescription>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <StatusBadge status={order.status} />
@@ -144,10 +144,10 @@ export function ServiceOrderDetailSheet({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <InfoRow label="Name" value={order.equipment.name} />
+                <InfoRow label="Name" value={order.equipment.equipmentModel.name} />
                 <InfoRow
                   label="Manufacturer / Model"
-                  value={`${order.equipment.manufacturer} ${order.equipment.model}`}
+                  value={`${order.equipment.equipmentModel.manufacturer} ${order.equipment.equipmentModel.model}`}
                 />
                 <InfoRow
                   label="Serial"

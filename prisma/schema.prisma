@@ -19,6 +19,7 @@ model Organization {
 
   equipment     Equipment[]
   serviceOrders ServiceOrder[]
+  contracts Contract[]
 }
 
 model EquipmentModel {
@@ -32,6 +33,7 @@ model EquipmentModel {
 
   units   Equipment[]
   manuals Manual[]
+  contractCoverage ContractEquipment[]
 }
 
 model Manual {
@@ -71,6 +73,8 @@ model Equipment {
 
   serviceOrders  ServiceOrder[]
   serviceHistory ServiceHistory[]
+  warranties Warranty[]
+  contractUnits      ContractEquipmentUnit[]
 }
 
 enum EquipmentStatus {
@@ -228,4 +232,100 @@ model User {
 enum UserRole {
   SUPERVISOR
   ENGINEER
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  contractNumber String         @unique
+  type           ContractType
+  status         ContractStatus @default(ACTIVE)
+  clientId       String
+  client         Organization   @relation(fields: [clientId], references: [id])
+  startDate      DateTime
+  endDate        DateTime
+  totalValue     Float?
+  currency       String         @default("MXN")
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  equipmentCoverage ContractEquipment[]
+}
+
+enum ContractType {
+  PUBLIC_BID         // LICITACIÓN PÚBLICA
+  DIRECT_AWARD       // ADJUDICACIÓN DIRECTA
+  LIMITED_TENDER     // INVITACIÓN RESTRINGIDA
+  LOAN_AGREEMENT     // COMODATO
+  PRIVATE            // CONTRATO PRIVADO
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  DRAFT
+}
+
+model ContractEquipment {
+  id               String        @id @default(cuid())
+  contractId       String
+  contract         Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id])
+  coverageType     CoverageType
+  pmVisitsPerYear  Int           @default(2)
+  slaHours         Int           @default(48)
+  includesParts    Boolean       @default(false)
+  includesLabor    Boolean       @default(true)
+  notes            String?
+  createdAt        DateTime      @default(now())
+
+  // Unidades específicas cubiertas — si está vacío, cubre TODAS las
+  // unidades del modelo en ese hospital (útil para contratos generales)
+  units            ContractEquipmentUnit[]
+}
+
+model ContractEquipmentUnit {
+  id                  String            @id @default(cuid())
+  contractEquipmentId String
+  contractEquipment   ContractEquipment @relation(fields: [contractEquipmentId], references: [id], onDelete: Cascade)
+  equipmentId         String
+  equipment           Equipment         @relation(fields: [equipmentId], references: [id])
+
+  @@unique([contractEquipmentId, equipmentId])
+}
+
+enum CoverageType {
+  FULL_SERVICE
+  PREVENTIVE_ONLY
+  CORRECTIVE_ONLY
+  LOAN_AGREEMENT //COMODATO
+  WARRANTY
+  PARTS_ONLY
+}
+
+model Warranty {
+  id             String       @id @default(cuid())
+  equipmentId    String
+  equipment      Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  providerType   WarrantyProviderType
+  providerName   String
+  startDate      DateTime
+  endDate        DateTime
+  coverageType   WarrantyCoverageType
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+enum WarrantyProviderType {
+  MANUFACTURER
+  DISTRIBUTOR
+  BOTH
+}
+
+enum WarrantyCoverageType {
+  PARTS_ONLY
+  LABOR_ONLY
+  PARTS_AND_LABOR
 }
