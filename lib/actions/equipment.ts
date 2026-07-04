@@ -28,6 +28,17 @@ type CreateEquipmentInput = {
   units: UnitInput[]
 }
 
+export async function updateEquipmentModel(
+  id: string,
+  data: { name: string; manufacturer: string; model: string; category: string }
+) {
+  await db.equipmentModel.update({
+    where: { id },
+    data,
+  })
+  revalidatePath('/inventory')
+}
+
 export async function createEquipmentWithUnits(input: CreateEquipmentInput) {
   const {
     equipmentModelId,
@@ -55,15 +66,23 @@ export async function createEquipmentWithUnits(input: CreateEquipmentInput) {
       throw new Error('Model details are required when creating a new model')
     }
 
-    const newModel = await db.equipmentModel.create({
-      data: {
-        name: modelName,
-        manufacturer,
-        model,
-        category,
+    // Busca si ya existe un modelo con el mismo fabricante + modelo exacto
+    // para evitar duplicados si el usuario reintenta tras un error parcial
+    const existing = await db.equipmentModel.findFirst({
+      where: {
+        manufacturer: { equals: manufacturer, mode: 'insensitive' },
+        model: { equals: model, mode: 'insensitive' },
       },
     })
-    resolvedModelId = newModel.id
+
+    if (existing) {
+      resolvedModelId = existing.id
+    } else {
+      const newModel = await db.equipmentModel.create({
+        data: { name: modelName, manufacturer, model, category },
+      })
+      resolvedModelId = newModel.id
+    }
   }
 
   // Paso 2: Crear todas las unidades en paralelo

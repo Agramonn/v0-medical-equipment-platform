@@ -30,7 +30,7 @@ async function getOrganizations() {
 
 // Equipos agrupados por organización — para el wizard de contratos
 async function getEquipmentByOrganization() {
-  const equipment = await db.equipment.findMany({
+  return db.equipment.findMany({
     select: {
       id: true,
       serialNumber: true,
@@ -53,7 +53,6 @@ async function getEquipmentByOrganization() {
       { equipmentModel: { name: 'asc' } },
     ],
   })
-  return equipment
 }
 
 export type ContractWithRelations = Awaited<ReturnType<typeof getContracts>>[number]
