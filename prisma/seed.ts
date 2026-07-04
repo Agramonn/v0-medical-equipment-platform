@@ -31,15 +31,15 @@ async function main() {
   await prisma.serviceOrderTimelineEvent.deleteMany()
   await prisma.serviceHistory.deleteMany()
   await prisma.serviceOrder.deleteMany()
+  await prisma.contractEquipment.deleteMany()
   await prisma.equipment.deleteMany()
   await prisma.manual.deleteMany()
-  await prisma.contractEquipment.deleteMany()
   await prisma.contract.deleteMany()
   await prisma.warranty.deleteMany()
   await prisma.equipmentModel.deleteMany()
   await prisma.organization.deleteMany()
   await prisma.user.deleteMany()
-  
+
 
   // ── Users ─────────────────────────────────────────────────
   const supervisorHash = await hashPassword('supervisor123')
@@ -87,24 +87,84 @@ async function main() {
   const hospitalCentral = await prisma.organization.create({
     data: {
       name: 'Hospital General de México',
+      type: 'STATE_HOSPITAL',
+      address: 'Dr. Balmis 148, Doctores',
       city: 'Ciudad de México',
       state: 'CDMX',
+      phone: '55 2789 2000',
+      email: 'contacto@hgm.salud.gob.mx',
+      website: 'www.hgm.salud.gob.mx',
+      contacts: {
+        create: [
+          {
+            name: 'Dr. Roberto Fuentes',
+            role: 'Chief of Biomedical Engineering',
+            email: 'r.fuentes@hgm.salud.gob.mx',
+            phone: '55 2789 2001',
+            isPrimary: true,
+          },
+          {
+            name: 'Lic. Carmen Vidal',
+            role: 'Procurement Manager',
+            email: 'c.vidal@hgm.salud.gob.mx',
+            phone: '55 2789 2002',
+            isPrimary: false,
+          },
+        ],
+      },
     },
   })
 
   const clinicaRegional = await prisma.organization.create({
     data: {
       name: 'Clínica Regional del Norte',
+      type: 'IMSS',
+      address: 'Av. Constitución 1900, Centro',
       city: 'Monterrey',
       state: 'Nuevo León',
+      phone: '81 8346 1000',
+      email: 'contacto@imss-mty.gob.mx',
+      contacts: {
+        create: [
+          {
+            name: 'Ing. Marco Téllez',
+            role: 'Biomedical Engineer',
+            email: 'm.tellez@imss.gob.mx',
+            phone: '81 8346 1050',
+            isPrimary: true,
+          },
+        ],
+      },
     },
   })
 
   const hospitalCivil = await prisma.organization.create({
     data: {
       name: 'Hospital Civil de Guadalajara',
+      type: 'STATE_HOSPITAL',
+      address: 'Calle Hospital 278, El Retiro',
       city: 'Guadalajara',
       state: 'Jalisco',
+      phone: '33 3030 5000',
+      email: 'biomedica@hcg.gob.mx',
+      contacts: {
+        create: [
+          {
+            name: 'Dra. Sofía Herrera',
+            role: 'Hospital Director',
+            email: 's.herrera@hcg.gob.mx',
+            phone: '33 3030 5001',
+            isPrimary: true,
+          },
+          {
+            name: 'Ing. Pablo Mora',
+            role: 'Maintenance Supervisor',
+            email: 'p.mora@hcg.gob.mx',
+            phone: '33 3030 5020',
+            isPrimary: false,
+          },
+        ],
+      },
     },
   })
 
@@ -428,121 +488,121 @@ async function main() {
   })
 
   // ── Contracts ──────────────────────────────────────────────
-console.log('🌱 Creating contracts...')
+  console.log('🌱 Creating contracts...')
 
-const contract1 = await prisma.contract.create({
-  data: {
-    contractNumber: 'LPN-HGM-2024-001',
-    type: 'PUBLIC_BID',
-    status: 'ACTIVE',
-    clientId: hospitalCentral.id,
-    startDate: new Date('2024-01-01'),
-    endDate: new Date('2025-12-31'),
-    totalValue: 850000,
-    currency: 'MXN',
-    notes: 'Preventive and corrective maintenance contract awarded through public bidding. Includes ICU ventilators and patient monitors.',
-  },
-})
-
-const contract2 = await prisma.contract.create({
-  data: {
-    contractNumber: 'COMOD-CRN-2024-003',
-    type: 'LOAN_AGREEMENT',
-    status: 'ACTIVE',
-    clientId: clinicaRegional.id,
-    startDate: new Date('2024-03-15'),
-    endDate: new Date('2027-03-14'),
-    totalValue: null, // Loan agreement — equipment is provided, not sold
-    currency: 'MXN',
-    notes: 'Loan agreement for a Siemens ultrasound system. The hospital pays for consumables while we maintain the equipment.',
-  },
-})
-
-const contract3 = await prisma.contract.create({
-  data: {
-    contractNumber: 'PRIV-HCG-2024-007',
-    type: 'PRIVATE',
-    status: 'ACTIVE',
-    clientId: hospitalCivil.id,
-    startDate: new Date('2024-01-20'),
-    endDate: new Date('2025-01-19'),
-    totalValue: 120000,
-    currency: 'MXN',
-    notes: 'Private maintenance contract for a defibrillator under extended warranty.',
-  },
-})
-
-// Equipment coverage by contract
-await prisma.contractEquipment.createMany({
-  data: [
-    {
-      contractId: contract1.id,
-      equipmentModelId: ventilador.equipmentModelId,
-      coverageType: 'FULL_SERVICE',
-      pmVisitsPerYear: 4,
-      slaHours: 24,
-      includesParts: true,
-      includesLabor: true,
+  const contract1 = await prisma.contract.create({
+    data: {
+      contractNumber: 'LPN-HGM-2024-001',
+      type: 'PUBLIC_BID',
+      status: 'ACTIVE',
+      clientId: hospitalCentral.id,
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2025-12-31'),
+      totalValue: 850000,
+      currency: 'MXN',
+      notes: 'Preventive and corrective maintenance contract awarded through public bidding. Includes ICU ventilators and patient monitors.',
     },
-    {
-      contractId: contract1.id,
-      equipmentModelId: monitor.equipmentModelId,
-      coverageType: 'PREVENTIVE_ONLY',
-      pmVisitsPerYear: 2,
-      slaHours: 48,
-      includesParts: false,
-      includesLabor: true,
-    },
-    {
-      contractId: contract2.id,
-      equipmentModelId: ecografo.equipmentModelId,
-      coverageType: 'LOAN_AGREEMENT',
-      pmVisitsPerYear: 2,
-      slaHours: 72,
-      includesParts: false,
-      includesLabor: true,
-      notes: 'Includes 2 preventive maintenance visits per year. Transducers are not included.',
-    },
-    {
-      contractId: contract3.id,
-      equipmentModelId: desfibrilador.equipmentModelId,
-      coverageType: 'WARRANTY',
-      pmVisitsPerYear: 1,
-      slaHours: 48,
-      includesParts: true,
-      includesLabor: true,
-    },
-  ],
-})
+  })
 
-// Warranties by physical equipment unit
-await prisma.warranty.createMany({
-  data: [
-    {
-      equipmentId: ventilador.id,
-      providerType: 'MANUFACTURER',
-      providerName: 'Philips Healthcare',
-      startDate: new Date('2022-03-10'),
-      endDate: new Date('2026-03-10'),
-      coverageType: 'PARTS_AND_LABOR',
-      notes: '4-year extended manufacturer warranty.',
+  const contract2 = await prisma.contract.create({
+    data: {
+      contractNumber: 'COMOD-CRN-2024-003',
+      type: 'LOAN_AGREEMENT',
+      status: 'ACTIVE',
+      clientId: clinicaRegional.id,
+      startDate: new Date('2024-03-15'),
+      endDate: new Date('2027-03-14'),
+      totalValue: null, // Loan agreement — equipment is provided, not sold
+      currency: 'MXN',
+      notes: 'Loan agreement for a Siemens ultrasound system. The hospital pays for consumables while we maintain the equipment.',
     },
-    {
-      equipmentId: desfibrilador.id,
-      providerType: 'BOTH',
-      providerName: 'Zoll Medical / BioSupp',
-      startDate: new Date('2023-01-20'),
-      endDate: new Date('2025-01-20'),
-      coverageType: 'PARTS_AND_LABOR',
-      notes: '2-year manufacturer warranty. Distributor provides additional labor coverage.',
+  })
+
+  const contract3 = await prisma.contract.create({
+    data: {
+      contractNumber: 'PRIV-HCG-2024-007',
+      type: 'PRIVATE',
+      status: 'ACTIVE',
+      clientId: hospitalCivil.id,
+      startDate: new Date('2024-01-20'),
+      endDate: new Date('2025-01-19'),
+      totalValue: 120000,
+      currency: 'MXN',
+      notes: 'Private maintenance contract for a defibrillator under extended warranty.',
     },
-  ],
-})
+  })
 
-console.log('✅ Contracts and warranties created')
+  // Equipment coverage by contract
+  await prisma.contractEquipment.createMany({
+    data: [
+      {
+        contractId: contract1.id,
+        equipmentModelId: ventilador.equipmentModelId,
+        coverageType: 'FULL_SERVICE',
+        pmVisitsPerYear: 4,
+        slaHours: 24,
+        includesParts: true,
+        includesLabor: true,
+      },
+      {
+        contractId: contract1.id,
+        equipmentModelId: monitor.equipmentModelId,
+        coverageType: 'PREVENTIVE_ONLY',
+        pmVisitsPerYear: 2,
+        slaHours: 48,
+        includesParts: false,
+        includesLabor: true,
+      },
+      {
+        contractId: contract2.id,
+        equipmentModelId: ecografo.equipmentModelId,
+        coverageType: 'LOAN_AGREEMENT',
+        pmVisitsPerYear: 2,
+        slaHours: 72,
+        includesParts: false,
+        includesLabor: true,
+        notes: 'Includes 2 preventive maintenance visits per year. Transducers are not included.',
+      },
+      {
+        contractId: contract3.id,
+        equipmentModelId: desfibrilador.equipmentModelId,
+        coverageType: 'WARRANTY',
+        pmVisitsPerYear: 1,
+        slaHours: 48,
+        includesParts: true,
+        includesLabor: true,
+      },
+    ],
+  })
 
-console.log('✅ Service history created')
-console.log('🎉 Seed completed successfully')
+  // Warranties by physical equipment unit
+  await prisma.warranty.createMany({
+    data: [
+      {
+        equipmentId: ventilador.id,
+        providerType: 'MANUFACTURER',
+        providerName: 'Philips Healthcare',
+        startDate: new Date('2022-03-10'),
+        endDate: new Date('2026-03-10'),
+        coverageType: 'PARTS_AND_LABOR',
+        notes: '4-year extended manufacturer warranty.',
+      },
+      {
+        equipmentId: desfibrilador.id,
+        providerType: 'BOTH',
+        providerName: 'Zoll Medical / BioSupp',
+        startDate: new Date('2023-01-20'),
+        endDate: new Date('2025-01-20'),
+        coverageType: 'PARTS_AND_LABOR',
+        notes: '2-year manufacturer warranty. Distributor provides additional labor coverage.',
+      },
+    ],
+  })
+
+  console.log('✅ Contracts and warranties created')
+
+  console.log('✅ Service history created')
+  console.log('🎉 Seed completed successfully')
 
 }
 
