@@ -42,18 +42,52 @@ async function getEngineers() {
   })
 }
 
+async function getEquipmentOptions() {
+  const equipment = await db.equipment.findMany({
+    select: {
+      id: true,
+      serialNumber: true,
+      department: true,
+      equipmentModel: { select: { name: true, manufacturer: true } },
+      organization: { select: { name: true } },
+    },
+    orderBy: { serialNumber: 'asc' },
+  })
+
+  return equipment.map((e) => ({
+    id: e.id,
+    label: `${e.equipmentModel.name} · ${e.serialNumber}`,
+    organization: e.organization.name,
+  }))
+}
+
+async function countPendingBackfill() {
+  return db.serviceOrder.count({
+    where: { status: 'CLOSED', serviceHistory: { is: null } },
+  })
+}
+
 export type ServiceHistoryWithRelations = Awaited<ReturnType<typeof getServiceHistory>>[number]
+export type EquipmentOption = Awaited<ReturnType<typeof getEquipmentOptions>>[number]
 
 export default async function HistoryPage() {
-  const [user, history, engineers] = await Promise.all([
+  const [user, history, engineers, equipmentOptions, pendingBackfill] = await Promise.all([
     getCurrentUser(),
     getServiceHistory(),
     getEngineers(),
+    getEquipmentOptions(),
+    countPendingBackfill(),
   ])
 
   return (
     <AppLayout user={user}>
-      <HistoryContent history={history} engineers={engineers} />
+      <HistoryContent
+        history={history}
+        engineers={engineers}
+        equipmentOptions={equipmentOptions}
+        canManage={user.role === 'SUPERVISOR'}
+        pendingBackfill={pendingBackfill}
+      />
     </AppLayout>
   )
 }
