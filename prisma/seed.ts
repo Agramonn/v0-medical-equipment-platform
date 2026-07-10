@@ -29,6 +29,9 @@ async function main() {
 
   // Limpieza en el orden correcto para respetar las foreign keys
   await prisma.serviceOrderTimelineEvent.deleteMany()
+  await prisma.checklistTemplateItem.deleteMany()
+  await prisma.checklistTemplate.deleteMany()
+  await prisma.sparePart.deleteMany()
   await prisma.serviceHistory.deleteMany()
   await prisma.serviceOrder.deleteMany()
   await prisma.contractEquipment.deleteMany()
@@ -602,6 +605,166 @@ async function main() {
   console.log('✅ Contracts and warranties created')
 
   console.log('✅ Service history created')
+
+  // ── Manuals & Spare Parts for the Ventilator ─────────────────────────────────
+  console.log('🌱 Creating manuals and spare parts...')
+
+  await prisma.manual.createMany({
+    data: [
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        name: 'Trilogy Evo Service Manual v3.2',
+        category: 'Service Manual',
+        pages: 342,
+      },
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        name: 'Trilogy Evo Operator Manual',
+        category: 'Operator Manual',
+        pages: 118,
+      },
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        name: 'PM Calibration Procedure — O2 Sensor',
+        category: 'Calibration Procedure',
+        pages: 12,
+      },
+    ],
+  })
+
+  await prisma.sparePart.createMany({
+    data: [
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        partNumber: 'PHI-FL-100',
+        description: 'Air Inlet Filter',
+        manufacturer: 'Philips',
+        supplier: 'Biomedical Supply MX',
+        estimatedCost: 45.00,
+        stock: 6,
+        reorderLevel: 3,
+      },
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        partNumber: 'PHI-OS-2847',
+        description: 'Oxygen Sensor',
+        manufacturer: 'Philips',
+        supplier: 'Biomedical Supply MX',
+        estimatedCost: 280.00,
+        stock: 1,
+        reorderLevel: 2,
+      },
+      {
+        equipmentModelId: ventilador.equipmentModelId,
+        partNumber: 'PHI-BP-500',
+        description: 'Internal Battery Pack',
+        manufacturer: 'Philips',
+        supplier: 'Medtech Distribuciones',
+        estimatedCost: 420.00,
+        stock: 0,
+        reorderLevel: 1,
+      },
+    ],
+  })
+
+  // ── Checklist Templates ───────────────────────────────────────────────────────
+  console.log('🌱 Creating checklist templates...')
+
+  const ventiladorModel = await prisma.equipmentModel.findFirst({
+    where: { manufacturer: 'Philips', model: 'Trilogy Evo' },
+  })
+
+  if (ventiladorModel) {
+    // Preventive Maintenance Template
+    const pmTemplate = await prisma.checklistTemplate.create({
+      data: {
+        name: 'Trilogy Evo — Preventive Maintenance',
+        serviceType: 'PREVENTIVE_MAINTENANCE',
+        version: '1.0',
+        estimatedMinutes: 90,
+        equipmentModelId: ventiladorModel.id,
+      },
+    })
+
+    await prisma.checklistTemplateItem.createMany({
+      data: [
+        // Section: Safety & Preparation
+        { templateId: pmTemplate.id, order: 1, section: 'Safety & Preparation', description: 'Verify equipment is disconnected from patient before starting service', isCritical: true, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 2, section: 'Safety & Preparation', description: 'Apply lockout/tagout procedure and document', isCritical: true, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 3, section: 'Safety & Preparation', description: 'Verify service manual version matches equipment serial', isCritical: false, requiresEvidence: false },
+
+        // Section: External Inspection
+        { templateId: pmTemplate.id, order: 4, section: 'External Inspection', description: 'Inspect chassis and housing for cracks or damage', isCritical: false, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 5, section: 'External Inspection', description: 'Inspect all external connectors and ports for damage', isCritical: false, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 6, section: 'External Inspection', description: 'Verify all labels and warnings are legible', isCritical: false, requiresEvidence: false },
+
+        // Section: Filters & Consumables
+        { templateId: pmTemplate.id, order: 7, section: 'Filters & Consumables', description: 'Inspect and replace air inlet filter (PHI-FL-100) if required', isCritical: false, requiresEvidence: true },
+        { templateId: pmTemplate.id, order: 8, section: 'Filters & Consumables', description: 'Verify bacterial filter condition on patient circuit ports', isCritical: true, requiresEvidence: false },
+
+        // Section: Electrical Safety
+        { templateId: pmTemplate.id, order: 9, section: 'Electrical Safety', description: 'Measure leakage current — must be < 300μA', expectedValue: '< 300μA', unit: 'μA', isCritical: true, requiresEvidence: true },
+        { templateId: pmTemplate.id, order: 10, section: 'Electrical Safety', description: 'Verify power cord and strain relief condition', isCritical: true, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 11, section: 'Electrical Safety', description: 'Measure battery voltage — nominal range 12.6–13.2V', expectedValue: '12.6–13.2V', unit: 'V', isCritical: false, requiresEvidence: true },
+
+        // Section: Functional Tests
+        { templateId: pmTemplate.id, order: 12, section: 'Functional Tests', description: 'Verify tidal volume delivery accuracy within ±5%', expectedValue: '±5%', isCritical: true, requiresEvidence: true },
+        { templateId: pmTemplate.id, order: 13, section: 'Functional Tests', description: 'Verify pressure accuracy within ±2 cmH2O', expectedValue: '±2 cmH2O', unit: 'cmH2O', isCritical: true, requiresEvidence: true },
+        { templateId: pmTemplate.id, order: 14, section: 'Functional Tests', description: 'Test all alarm systems — apnea, high pressure, low pressure', isCritical: true, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 15, section: 'Functional Tests', description: 'Verify oxygen sensor reading within ±3% of reference', expectedValue: '±3%', isCritical: true, requiresEvidence: true },
+
+        // Section: Calibration
+        { templateId: pmTemplate.id, order: 16, section: 'Calibration', description: 'Perform flow sensor calibration per manufacturer procedure', isCritical: true, requiresEvidence: true },
+        { templateId: pmTemplate.id, order: 17, section: 'Calibration', description: 'Perform oxygen cell calibration — 21% and 100%', isCritical: true, requiresEvidence: true },
+
+        // Section: Final Verification
+        { templateId: pmTemplate.id, order: 18, section: 'Final Verification', description: 'Run full self-test and verify no fault codes', isCritical: true, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 19, section: 'Final Verification', description: 'Clean exterior with approved disinfectant', isCritical: false, requiresEvidence: false },
+        { templateId: pmTemplate.id, order: 20, section: 'Final Verification', description: 'Affix service label with date and technician name', isCritical: false, requiresEvidence: false },
+      ],
+    })
+
+    // Corrective Maintenance Template
+    const cmTemplate = await prisma.checklistTemplate.create({
+      data: {
+        name: 'Trilogy Evo — Corrective Maintenance Report',
+        serviceType: 'CORRECTIVE_MAINTENANCE',
+        version: '1.0',
+        estimatedMinutes: 120,
+        equipmentModelId: ventiladorModel.id,
+      },
+    })
+
+    await prisma.checklistTemplateItem.createMany({
+      data: [
+        // Section: Problem Description
+        { templateId: cmTemplate.id, order: 1, section: 'Problem Description', description: 'Document the reported fault as described by the user', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 2, section: 'Problem Description', description: 'Verify fault is reproducible before starting repair', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 3, section: 'Problem Description', description: 'Check error log/fault codes on device display', isCritical: false, requiresEvidence: true },
+
+        // Section: Diagnosis
+        { templateId: cmTemplate.id, order: 4, section: 'Diagnosis', description: 'Identify root cause of failure', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 5, section: 'Diagnosis', description: 'Check if fault is related to previously replaced components', isCritical: false, requiresEvidence: false },
+
+        // Section: Corrective Actions
+        { templateId: cmTemplate.id, order: 6, section: 'Corrective Actions', description: 'Document all corrective actions performed', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 7, section: 'Corrective Actions', description: 'Document all parts replaced with part numbers and quantities', isCritical: true, requiresEvidence: false },
+
+        // Section: Verification
+        { templateId: cmTemplate.id, order: 8, section: 'Verification', description: 'Verify original fault is resolved', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 9, section: 'Verification', description: 'Run full self-test — no fault codes', isCritical: true, requiresEvidence: true },
+        { templateId: cmTemplate.id, order: 10, section: 'Verification', description: 'Perform safety electrical test after any internal repair', isCritical: true, requiresEvidence: true },
+
+        // Section: Handover
+        { templateId: cmTemplate.id, order: 11, section: 'Handover', description: 'Equipment returned to operational status and delivered to user area', isCritical: true, requiresEvidence: false },
+        { templateId: cmTemplate.id, order: 12, section: 'Handover', description: 'User area notified and accepts equipment return', isCritical: true, requiresEvidence: false },
+      ],
+    })
+
+    console.log('✅ Checklist templates created')
+  }
+
+  console.log('✅ Manuals and spare parts created')
   console.log('🎉 Seed completed successfully')
 
 }

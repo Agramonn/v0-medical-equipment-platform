@@ -43,6 +43,11 @@ export type ServiceHistoryRecord = {
 
 export type EquipmentWithDetails = EquipmentWithOrganization & {
   serviceHistory: ServiceHistoryRecord[]
+  equipmentModel: EquipmentWithOrganization['equipmentModel'] & {
+    manuals: ManualRecord[]
+    spareParts: SparePartRecord[]
+    contractCoverage: ContractCoverage[]
+  }
 }
 
 export type ServiceOrderWithRelations = {
@@ -58,8 +63,14 @@ export type ServiceOrderWithRelations = {
   serviceLocation: string | null
   completedAt: Date | null
   closedAt: Date | null
+  checklist: ChecklistResponse | null
   objectives: string | null
   activities: string | null
+  signedDocumentUrl: string | null
+  engineerSignedName: string | null
+  engineerSignedAt: Date | null
+  customerSignedName: string | null
+  customerSignedAt: Date | null
   requiredTools: string[]
   requiredParts: string[]
   safetyRequirements: string | null
@@ -116,4 +127,87 @@ export type EquipmentOption = {
   department: string
   organizationId: string
   organization: { name: string }
+}
+
+export type ManualRecord = {
+  id: string
+  name: string
+  category: string
+  fileUrl: string | null
+  pages: number | null
+  createdAt: Date
+}
+
+export type SparePartRecord = {
+  id: string
+  partNumber: string
+  description: string
+  manufacturer: string
+  supplier: string | null
+  estimatedCost: number | null
+  stock: number
+  reorderLevel: number
+}
+
+export type ContractCoverage = {
+  id: string
+  contractNumber: string
+  type: string
+  status: string
+  coverageType: string
+  pmVisitsPerYear: number
+  slaHours: number
+  includesParts: boolean
+  includesLabor: boolean
+  endDate: Date
+  
+  contract: {
+    id: string
+    contractNumber: string
+    type: string
+    status: string
+    endDate: Date
+    client: {
+      name: string
+    }
+  }
+}
+
+export type ChecklistTemplateItem = {
+  id: string
+  order: number
+  section: string
+  description: string
+  expectedValue: string | null
+  unit: string | null
+  isCritical: boolean
+  requiresEvidence: boolean
+}
+
+export type ChecklistTemplate = {
+  id: string
+  name: string
+  serviceType: string
+  version: string
+  estimatedMinutes: number
+  items: ChecklistTemplateItem[]
+}
+
+// Respuesta guardada por ítem al completar el checklist
+export type ChecklistItemResponse = {
+  itemId: string
+  status: 'pass' | 'fail' | 'na' | 'pending'
+  measuredValue?: string
+  notes?: string
+  completedAt?: string
+}
+
+// El checklist completo guardado en ServiceOrder.checklist (Json)
+export type ChecklistResponse = {
+  templateId: string
+  templateVersion: string
+  startedAt: string
+  completedAt?: string
+  completedBy: string
+  items: ChecklistItemResponse[]
 }

@@ -66,6 +66,8 @@ model EquipmentModel {
   units   Equipment[]
   manuals Manual[]
   contractCoverage ContractEquipment[]
+  spareParts       SparePart[]
+  checklistTemplates ChecklistTemplate[]
 }
 
 model Manual {
@@ -156,6 +158,7 @@ model ServiceOrder {
   engineerSignedAt   DateTime?
   customerSignedName String?
   customerSignedAt   DateTime?
+  signedDocumentUrl  String?
 
   origin ServiceOrderOrigin @default(MANUAL)
 
@@ -360,4 +363,51 @@ enum WarrantyCoverageType {
   PARTS_ONLY
   LABOR_ONLY
   PARTS_AND_LABOR
+}
+
+model SparePart {
+  id               String         @id @default(cuid())
+  partNumber       String
+  description      String
+  manufacturer     String
+  supplier         String?
+  estimatedCost    Float?
+  stock            Int            @default(0)
+  reorderLevel     Int            @default(1)
+  createdAt        DateTime       @default(now())
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id], onDelete: Cascade)
+}
+
+model ChecklistTemplate {
+  id               String                  @id @default(cuid())
+  name             String
+  serviceType      ServiceOrderType
+  version          String                  @default("1.0")
+  estimatedMinutes Int                     @default(60)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel          @relation(fields: [equipmentModelId], references: [id], onDelete: Cascade)
+
+  items            ChecklistTemplateItem[]
+
+  @@unique([equipmentModelId, serviceType])
+}
+
+model ChecklistTemplateItem {
+  id               String              @id @default(cuid())
+  order            Int
+  section          String
+  description      String
+  expectedValue    String?
+  unit             String?
+  isCritical       Boolean             @default(false)
+  requiresEvidence Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+
+  templateId       String
+  template         ChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
