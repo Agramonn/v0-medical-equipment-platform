@@ -1,6 +1,6 @@
 'use client'
 
-import { EquipmentWithOrganization } from '@/lib/types'
+import { EquipmentModel, EquipmentWithOrganization } from '@/lib/types'
 import * as React from 'react'
 import Link from 'next/link'
 import {
@@ -74,6 +74,7 @@ import { AddEquipmentDialog } from './add-equipment-dialog'
 import { DeleteEquipmentButton } from './delete-equipment-button'
 import { EditEquipmentDialog } from './edit-equipment-dialog'
 import { QrCodeDialog } from './qr-code-dialog'
+import { EditEquipmentModelDialog } from './edit-equipment-model-dialog'
 
 const ITEMS_PER_PAGE = 10
 
@@ -289,6 +290,8 @@ export function InventoryContent({
   const [editingEquipment, setEditingEquipment] = React.useState<EquipmentWithOrganization | null>(null)
   const [qrEquipment, setQrEquipment] = React.useState<EquipmentWithOrganization | null>(null)
   const [currentPage, setCurrentPage] = React.useState(1)
+  const [editingModel, setEditingModel] = React.useState<EquipmentModel | null>(null)
+  const [editModelOpen, setEditModelOpen] = React.useState(false)
 
   const hospitals = React.useMemo(() => {
     const unique = new Map<string, string>()
@@ -594,6 +597,15 @@ export function InventoryContent({
                               <Settings2 className="mr-2 size-4" />
                               Edit Equipment
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingModel(equipment.equipmentModel)
+                                setEditModelOpen(true)
+                              }}
+                            >
+                              <Settings2 className="mr-2 size-4" />
+                              Edit Model
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive p-0"
@@ -706,6 +718,16 @@ export function InventoryContent({
           open={!!editingEquipment}
           onOpenChange={(open) => {
             if (!open) setEditingEquipment(null)
+          }}
+        />
+      )}
+      {editingModel && (
+        <EditEquipmentModelDialog
+          model={editingModel}
+          open={editModelOpen}
+          onOpenChange={(open) => {
+            setEditModelOpen(open)
+            if (!open) setEditingModel(null)
           }}
         />
       )}

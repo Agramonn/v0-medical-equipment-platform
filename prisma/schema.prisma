@@ -9,16 +9,49 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   name      String
+  type      OrganizationType @default(PRIVATE_HOSPITAL)
+  address   String?
   city      String
   state     String
-  country   String   @default("México")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  country   String           @default("México")
+  phone     String?
+  email     String?
+  website   String?
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   equipment     Equipment[]
   serviceOrders ServiceOrder[]
+  contracts     Contract[]
+  contacts      OrganizationContact[]
+}
+
+enum OrganizationType {
+  IMSS
+  ISSSTE
+  SEDENA
+  PEMEX
+  STATE_HOSPITAL
+  PRIVATE_HOSPITAL
+  CLINIC
+  LABORATORY
+  DISTRIBUTOR
+}
+
+model OrganizationContact {
+  id             String       @id @default(cuid())
+  name           String
+  role           String
+  email          String?
+  phone          String?
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model EquipmentModel {
@@ -32,6 +65,9 @@ model EquipmentModel {
 
   units   Equipment[]
   manuals Manual[]
+  contractCoverage ContractEquipment[]
+  spareParts       SparePart[]
+  checklistTemplates ChecklistTemplate[]
 }
 
 model Manual {
@@ -71,6 +107,8 @@ model Equipment {
 
   serviceOrders  ServiceOrder[]
   serviceHistory ServiceHistory[]
+  warranties Warranty[]
+  contractUnits      ContractEquipmentUnit[]
 }
 
 enum EquipmentStatus {
@@ -120,6 +158,7 @@ model ServiceOrder {
   engineerSignedAt   DateTime?
   customerSignedName String?
   customerSignedAt   DateTime?
+  signedDocumentUrl  String?
 
   origin ServiceOrderOrigin @default(MANUAL)
 
@@ -228,4 +267,147 @@ model User {
 enum UserRole {
   SUPERVISOR
   ENGINEER
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  contractNumber String         @unique
+  type           ContractType
+  status         ContractStatus @default(ACTIVE)
+  clientId       String
+  client         Organization   @relation(fields: [clientId], references: [id])
+  startDate      DateTime
+  endDate        DateTime
+  totalValue     Float?
+  currency       String         @default("MXN")
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  equipmentCoverage ContractEquipment[]
+}
+
+enum ContractType {
+  PUBLIC_BID         // LICITACIÓN PÚBLICA
+  DIRECT_AWARD       // ADJUDICACIÓN DIRECTA
+  LIMITED_TENDER     // INVITACIÓN RESTRINGIDA
+  LOAN_AGREEMENT     // COMODATO
+  PRIVATE            // CONTRATO PRIVADO
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  DRAFT
+}
+
+model ContractEquipment {
+  id               String        @id @default(cuid())
+  contractId       String
+  contract         Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id])
+  coverageType     CoverageType
+  pmVisitsPerYear  Int           @default(2)
+  slaHours         Int           @default(48)
+  includesParts    Boolean       @default(false)
+  includesLabor    Boolean       @default(true)
+  notes            String?
+  createdAt        DateTime      @default(now())
+
+  // Unidades específicas cubiertas — si está vacío, cubre TODAS las
+  // unidades del modelo en ese hospital (útil para contratos generales)
+  units            ContractEquipmentUnit[]
+}
+
+model ContractEquipmentUnit {
+  id                  String            @id @default(cuid())
+  contractEquipmentId String
+  contractEquipment   ContractEquipment @relation(fields: [contractEquipmentId], references: [id], onDelete: Cascade)
+  equipmentId         String
+  equipment           Equipment         @relation(fields: [equipmentId], references: [id])
+
+  @@unique([contractEquipmentId, equipmentId])
+}
+
+enum CoverageType {
+  FULL_SERVICE
+  PREVENTIVE_ONLY
+  CORRECTIVE_ONLY
+  LOAN_AGREEMENT //COMODATO
+  WARRANTY
+  PARTS_ONLY
+}
+
+model Warranty {
+  id             String       @id @default(cuid())
+  equipmentId    String
+  equipment      Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  providerType   WarrantyProviderType
+  providerName   String
+  startDate      DateTime
+  endDate        DateTime
+  coverageType   WarrantyCoverageType
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+enum WarrantyProviderType {
+  MANUFACTURER
+  DISTRIBUTOR
+  BOTH
+}
+
+enum WarrantyCoverageType {
+  PARTS_ONLY
+  LABOR_ONLY
+  PARTS_AND_LABOR
+}
+
+model SparePart {
+  id               String         @id @default(cuid())
+  partNumber       String
+  description      String
+  manufacturer     String
+  supplier         String?
+  estimatedCost    Float?
+  stock            Int            @default(0)
+  reorderLevel     Int            @default(1)
+  createdAt        DateTime       @default(now())
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel @relation(fields: [equipmentModelId], references: [id], onDelete: Cascade)
+}
+
+model ChecklistTemplate {
+  id               String                  @id @default(cuid())
+  name             String
+  serviceType      ServiceOrderType
+  version          String                  @default("1.0")
+  estimatedMinutes Int                     @default(60)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  equipmentModelId String
+  equipmentModel   EquipmentModel          @relation(fields: [equipmentModelId], references: [id], onDelete: Cascade)
+
+  items            ChecklistTemplateItem[]
+
+  @@unique([equipmentModelId, serviceType])
+}
+
+model ChecklistTemplateItem {
+  id               String              @id @default(cuid())
+  order            Int
+  section          String
+  description      String
+  expectedValue    String?
+  unit             String?
+  isCritical       Boolean             @default(false)
+  requiresEvidence Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+
+  templateId       String
+  template         ChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }

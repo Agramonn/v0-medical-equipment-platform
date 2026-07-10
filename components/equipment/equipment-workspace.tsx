@@ -44,13 +44,13 @@ import { PartsTab } from './tabs/parts-tab'
 import { ManualsTab } from './tabs/manuals-tab'
 import { ChatTab } from './tabs/chat-tab'
 import { HistoryTab } from './tabs/history-tab'
-import { EquipmentWithDetails, EquipmentOption } from '@/lib/types'
+import { EquipmentWithDetails, EquipmentOption, ChecklistTemplate } from '@/lib/types'
 
 
 const tabs = [
   { value: 'general', label: 'General', Icon: Info, Component: GeneralInfoTab },
   { value: 'service', label: 'Service', Icon: Wrench, Component: null }, // ServiceTab is rendered separately with props
-  { value: 'checklist', label: 'Checklist', Icon: Clipboard, Component: ChecklistTab },
+  { value: 'checklist', label: 'Checklist', Icon: Clipboard, Component: null }, // ChecklistTab is rendered separately with props
   { value: 'parts', label: 'Parts', Icon: Package, Component: PartsTab },
   { value: 'manuals', label: 'Manuals', Icon: BookOpen, Component: ManualsTab },
   { value: 'chat', label: 'AI Chat', Icon: Bot, Component: ChatTab },
@@ -68,12 +68,16 @@ export function EquipmentWorkspace({
   equipmentList,
   engineers,
   currentUserId,
+  currentUserRole,
+  checklistTemplates,
 }: {
   equipment: EquipmentWithDetails
   serviceOrders: ServiceOrderWithRelations[]
   equipmentList: EquipmentOption[]
   engineers: EngineerOption[]
   currentUserId: string
+  currentUserRole: 'SUPERVISOR' | 'ENGINEER'
+  checklistTemplates: ChecklistTemplate[]
 }) {
   const [isOnline, setIsOnline] = React.useState(true)
   const [status, setStatus] = React.useState<EquipmentStatus>(equipment.status.toLowerCase().replace('_', '-') as EquipmentStatus)
@@ -97,7 +101,7 @@ export function EquipmentWorkspace({
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link href="/engineer">
+          <Link href="/inventory">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="size-4" />
               <span className="sr-only">Back</span>
@@ -213,8 +217,19 @@ export function EquipmentWorkspace({
                 engineers={engineers}
                 currentUserId={currentUserId}
               />
+            ) : value === 'checklist' ? (
+              <ChecklistTab
+                equipment={equipment}
+                serviceOrders={serviceOrders}
+                templates={checklistTemplates}
+                isSupervisor={currentUserRole === 'SUPERVISOR'}
+                engineers={engineers}
+              />
             ) : Component ? (
-              <Component equipment={equipment} />
+              <Component
+                equipment={equipment}
+                isSupervisor={currentUserRole === 'SUPERVISOR'}
+              />
             ) : null}
           </TabsContent>
         ))}

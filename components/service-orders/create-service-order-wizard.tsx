@@ -199,7 +199,6 @@ export function CreateServiceOrderWizard({
     formData.set('safetyRequirements', safety)
     formData.set('customerNotes', customerNotes)
     formData.set('assignedToId', engineerId)
-    formData.set('createdById', currentUserId)
 
     try {
       await createServiceOrder(formData)

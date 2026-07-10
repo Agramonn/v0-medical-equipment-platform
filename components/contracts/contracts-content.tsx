@@ -9,13 +9,16 @@ import {
   CheckCircle2,
   ClipboardList,
   DollarSign,
+  Download,
   Eye,
   FileText,
   Plus,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Wrench,
+  XCircle,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -45,86 +48,199 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
 import {
-  contracts,
-  contractStatusConfig,
-  coverageTypeConfig,
-  pmPlans,
-  daysUntil,
-  isDueForGeneration,
-  type Contract,
-  type ContractStatus,
-} from '@/lib/contract-data'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { ContractWithRelations } from '@/app/contracts/page'
+import { AddContractDialog } from './add-contracts-dialog'
+import { ContractDetailSheet } from './contract-detail-sheet'
+import { deleteContract } from '@/lib/actions/contracts'
 
-function ContractStatusBadge({ status }: { status: ContractStatus }) {
-  const meta = contractStatusConfig[status]
-  return <Badge className={meta.className}>{meta.label}</Badge>
+type Organization = { id: string; name: string; city: string; state: string }
+type EquipmentForContract = {
+  id: string
+  serialNumber: string
+  assetNumber: string
+  department: string
+  organizationId: string
+  equipmentModelId: string
+  equipmentModel: {
+    id: string
+    name: string
+    manufacturer: string
+    model: string
+    category: string
+  }
 }
 
-function CoverageBadge({ type }: { type: Contract['coverageType'] }) {
-  const meta = coverageTypeConfig[type]
+// ── Badge helpers ─────────────────────────────────────────────────────────────
+
+const typeLabels: Record<string, string> = {
+  PUBLIC_BID: 'Public Bid',
+  DIRECT_AWARD: 'Direct Award',
+  LIMITED_TENDER: 'Limited Tender',
+  LOAN_AGREEMENT: 'Loan Agreement',
+  PRIVATE: 'Private',
+}
+
+const coverageLabels: Record<string, string> = {
+  FULL_SERVICE: 'Full Service',
+  PREVENTIVE_ONLY: 'PM Only',
+  CORRECTIVE_ONLY: 'Corrective',
+  LOAN_AGREEMENT: 'Comodato',
+  WARRANTY: 'Warranty',
+  PARTS_ONLY: 'Parts Only',
+}
+
+const statusConfig: Record<string, { label: string; className: string; Icon: typeof CheckCircle2 }> = {
+  ACTIVE: { label: 'Active', className: 'bg-success/10 text-success', Icon: CheckCircle2 },
+  EXPIRED: { label: 'Expired', className: 'bg-muted text-muted-foreground', Icon: XCircle },
+  CANCELLED: { label: 'Cancelled', className: 'bg-destructive/10 text-destructive', Icon: XCircle },
+  DRAFT: { label: 'Draft', className: 'bg-warning/10 text-warning', Icon: AlertTriangle },
+}
+
+function daysUntil(date: Date | string) {
+  return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const meta = statusConfig[status] ?? statusConfig.DRAFT
   return (
-    <Badge variant="outline" className={meta.className}>
-      {meta.short}
+    <Badge className={meta.className}>
+      <meta.Icon className="mr-1 size-3" />
+      {meta.label}
     </Badge>
   )
 }
 
-const stats = [
-  {
-    title: 'Total Contract Value',
-    value: `$${(contracts.reduce((s, c) => s + c.value, 0) / 1000).toFixed(0)}K`,
-    icon: DollarSign,
-    tone: 'success' as const,
-  },
-  {
-    title: 'Active Contracts',
-    value: String(contracts.filter((c) => c.status === 'active').length),
-    icon: FileText,
-    tone: 'neutral' as const,
-  },
-  {
-    title: 'Expiring Soon',
-    value: String(contracts.filter((c) => c.status === 'expiring-soon').length),
-    icon: AlertTriangle,
-    tone: 'warning' as const,
-  },
-  {
-    title: 'PM Plans',
-    value: String(pmPlans.length),
-    icon: CalendarClock,
-    tone: 'primary' as const,
-  },
-]
-
-const toneClasses: Record<string, { bg: string; text: string }> = {
-  success: { bg: 'bg-success/10', text: 'text-success' },
-  warning: { bg: 'bg-warning/10', text: 'text-warning' },
-  primary: { bg: 'bg-primary/10', text: 'text-primary' },
-  neutral: { bg: 'bg-muted', text: 'text-muted-foreground' },
+function ExpiryLabel({ endDate, status }: { endDate: Date; status: string }) {
+  const days = daysUntil(endDate)
+  if (status !== 'ACTIVE') return null
+  if (days < 0) return <span className="text-xs text-destructive">Expired</span>
+  if (days <= 30) return <span className="text-xs font-medium text-destructive">{days}d left</span>
+  if (days <= 90) return <span className="text-xs font-medium text-warning">{days}d left</span>
+  return <span className="text-xs text-muted-foreground">{days}d left</span>
 }
 
-export function ContractsContent() {
+// ── Main component ────────────────────────────────────────────────────────────
+
+export function ContractsContent({
+  contracts,
+  organizations,
+  equipmentByOrg,
+}: {
+  contracts: ContractWithRelations[]
+  organizations: Organization[]
+  equipmentByOrg: EquipmentForContract[]
+}) {
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [search, setSearch] = React.useState('')
+  const [addOpen, setAddOpen] = React.useState(false)
+  const [activeContract, setActiveContract] = React.useState<ContractWithRelations | null>(null)
+  const [detailOpen, setDetailOpen] = React.useState(false)
+  const [contractToDelete, setContractToDelete] = React.useState<ContractWithRelations | null>(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const filteredContracts = contracts.filter((contract) => {
-    if (statusFilter !== 'all' && contract.status !== statusFilter) return false
-    if (
-      search &&
-      !contract.customerName.toLowerCase().includes(search.toLowerCase()) &&
-      !contract.contractNumber.toLowerCase().includes(search.toLowerCase())
-    )
-      return false
+  const filteredContracts = contracts.filter((c) => {
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return (
+        c.contractNumber.toLowerCase().includes(q) ||
+        c.client.name.toLowerCase().includes(q)
+      )
+    }
     return true
   })
 
-  const allLineItems = contracts.flatMap((c) =>
-    c.lineItems.map((li) => ({ ...li, customerName: c.customerName })),
+  // ── Stats calculados desde datos reales ──
+  const totalValue = contracts.reduce((sum, c) => sum + (c.totalValue ?? 0), 0)
+  const activeCount = contracts.filter((c) => c.status === 'ACTIVE').length
+  const expiringSoon = contracts.filter((c) => {
+    const days = daysUntil(c.endDate)
+    return c.status === 'ACTIVE' && days >= 0 && days <= 90
+  }).length
+
+  // ── Coverage line items — todos los modelos cubiertos entre todos los contratos ──
+  const allCoverage = contracts.flatMap((c) =>
+    c.equipmentCoverage.map((cov) => ({
+      ...cov,
+      contractNumber: c.contractNumber,
+      clientName: c.client.name,
+    }))
   )
 
-  const dueSoon = pmPlans.filter((p) => isDueForGeneration(p, 30))
+  // ── PM Plans — coverage con PM visits > 0 y contrato activo ──
+  const pmPlans = contracts
+    .filter((c) => c.status === 'ACTIVE')
+    .flatMap((c) =>
+      c.equipmentCoverage
+        .filter((cov) => cov.pmVisitsPerYear > 0)
+        .map((cov) => ({
+          id: cov.id,
+          contractNumber: c.contractNumber,
+          clientName: c.client.name,
+          modelName: cov.equipmentModel.name,
+          manufacturer: cov.equipmentModel.manufacturer,
+          coverageType: cov.coverageType,
+          pmVisitsPerYear: cov.pmVisitsPerYear,
+          slaHours: cov.slaHours,
+          contractEndDate: c.endDate,
+        }))
+    )
+
+  const dueSoon = expiringSoon > 0
+
+  const stats = [
+    {
+      title: 'Total Contract Value',
+      value: totalValue > 0 ? `$${(totalValue / 1000).toFixed(0)}K` : '—',
+      Icon: DollarSign,
+      bg: 'bg-success/10',
+      text: 'text-success',
+    },
+    {
+      title: 'Active Contracts',
+      value: String(activeCount),
+      Icon: FileText,
+      bg: 'bg-muted',
+      text: 'text-muted-foreground',
+    },
+    {
+      title: 'Expiring Soon',
+      value: String(expiringSoon),
+      Icon: AlertTriangle,
+      bg: 'bg-warning/10',
+      text: 'text-warning',
+    },
+    {
+      title: 'PM Plans',
+      value: String(pmPlans.length),
+      Icon: CalendarClock,
+      bg: 'bg-primary/10',
+      text: 'text-primary',
+    },
+  ]
+
+  async function handleDelete() {
+    if (!contractToDelete) return
+    setIsDeleting(true)
+    try {
+      await deleteContract(contractToDelete.id)
+      setContractToDelete(null)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -139,37 +255,41 @@ export function ContractsContent() {
             originates here, not from service orders.
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 size-4" />
-          New Contract
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 size-4" />
+            Export
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 size-4" />
+            New Contract
+          </Button>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — layout vertical como el original */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const tone = toneClasses[stat.tone]
-          return (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className={cn('rounded-lg p-2', tone.bg)}>
-                    <stat.icon className={cn('size-5', tone.text)} />
-                  </div>
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className={cn('rounded-lg p-2', stat.bg)}>
+                  <stat.Icon className={cn('size-5', stat.text)} />
                 </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">
+                  {stat.value}
+                </p>
+                <p className="text-sm text-muted-foreground">{stat.title}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Tabs defaultValue="contracts" className="space-y-4">
+        {/* Tabs + filtros en la misma fila — igual que el original */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <TabsList>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
@@ -192,16 +312,16 @@ export function ContractsContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="expiring-soon">Expiring Soon</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Contracts table */}
+        {/* ── Tab: Contracts ── */}
         <TabsContent value="contracts" className="space-y-4">
           <Card>
             <CardContent className="p-0">
@@ -210,84 +330,97 @@ export function ContractsContent() {
                   <TableRow>
                     <TableHead>Contract</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Coverage Type</TableHead>
-                    <TableHead>Equipment</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Coverage</TableHead>
+                    <TableHead>Period</TableHead>
                     <TableHead>Value</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead className="w-[50px]" />
+                    <TableHead className="w-12" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredContracts.map((contract) => {
-                    const remaining = daysUntil(contract.endDate)
-                    return (
-                      <TableRow key={contract.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-muted p-2">
-                              <FileText className="size-4 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{contract.contractNumber}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {contract.id}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {contract.customerName}
-                        </TableCell>
-                        <TableCell>
-                          <CoverageBadge type={contract.coverageType} />
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {contract.lineItems.length}
-                        </TableCell>
-                        <TableCell className="font-medium tabular-nums">
-                          {contract.value > 0
-                            ? `$${(contract.value / 1000).toFixed(0)}K`
-                            : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <ContractStatusBadge status={contract.status} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="tabular-nums">{contract.endDate}</p>
-                            {remaining > 0 ? (
-                              <p
-                                className={cn(
-                                  'text-xs',
-                                  remaining <= 90
-                                    ? 'text-warning'
-                                    : 'text-muted-foreground',
-                                )}
-                              >
-                                {remaining} days left
-                              </p>
-                            ) : (
-                              <p className="text-xs text-destructive">Expired</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="size-4" />
-                            <span className="sr-only">View contract</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {filteredContracts.map((contract) => (
+                    <TableRow
+                      key={contract.id}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setActiveContract(contract)
+                        setDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <span className="font-mono text-sm font-medium">
+                          {contract.contractNumber}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm font-medium">{contract.client.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {contract.client.city}, {contract.client.state}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {typeLabels[contract.type] ?? contract.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {contract.equipmentCoverage.length} model{contract.equipmentCoverage.length !== 1 ? 's' : ''}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{new Date(contract.startDate).toLocaleDateString('en-US')}</p>
+                          <p className="text-xs text-muted-foreground">
+                            → {new Date(contract.endDate).toLocaleDateString('en-US')}
+                          </p>
+                          <ExpiryLabel endDate={contract.endDate} status={contract.status} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {contract.totalValue
+                            ? `$${contract.totalValue.toLocaleString()} ${contract.currency}`
+                            : <span className="text-muted-foreground">—</span>}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={contract.status} />
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setActiveContract(contract)
+                            setDetailOpen(true)
+                          }}
+                        >
+                          <Eye className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredContracts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                        No contracts found.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredContracts.length} of {contracts.length} contracts
+          </p>
         </TabsContent>
 
-        {/* Coverage (line items) */}
+        {/* ── Tab: Covered Equipment ── */}
         <TabsContent value="coverage" className="space-y-4">
           <Card>
             <CardHeader>
@@ -296,58 +429,82 @@ export function ContractsContent() {
               </CardTitle>
               <CardDescription>
                 Each contract line item defines the maintenance obligations
-                (PM frequency, calibration, SLA) for a piece of equipment.
+                (PM frequency, SLA, parts/labor) for an equipment model.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Equipment</TableHead>
+                    <TableHead>Equipment Model</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>PM Frequency</TableHead>
-                    <TableHead>Calibration</TableHead>
-                    <TableHead>Included Visits</TableHead>
-                    <TableHead>Parts</TableHead>
+                    <TableHead>Contract</TableHead>
+                    <TableHead>Coverage Type</TableHead>
+                    <TableHead>PM Visits/yr</TableHead>
                     <TableHead>SLA</TableHead>
+                    <TableHead>Parts</TableHead>
+                    <TableHead>Labor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allLineItems.map((li) => (
-                    <TableRow key={li.id}>
+                  {allCoverage.map((cov) => (
+                    <TableRow key={cov.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Wrench className="size-4 text-muted-foreground" />
-                          <span className="font-medium">{li.equipmentName}</span>
+                          <Wrench className="size-4 text-muted-foreground shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium">{cov.equipmentModel.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {cov.equipmentModel.manufacturer} · {cov.equipmentModel.model}
+                            </p>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell>{li.customerName}</TableCell>
+                      <TableCell className="text-sm">{cov.clientName}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{li.pmFrequency}</Badge>
+                        <span className="font-mono text-xs">{cov.contractNumber}</span>
                       </TableCell>
                       <TableCell>
-                        {li.calibrationFrequency === 'None' ? (
-                          <span className="text-muted-foreground">—</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {coverageLabels[cov.coverageType] ?? cov.coverageType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="tabular-nums text-sm">
+                        {cov.pmVisitsPerYear}/yr
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {cov.slaHours}h
+                      </TableCell>
+                      <TableCell>
+                        {cov.includesParts ? (
+                          <CheckCircle2 className="size-4 text-success" />
                         ) : (
-                          <Badge variant="outline">{li.calibrationFrequency}</Badge>
+                          <XCircle className="size-4 text-muted-foreground" />
                         )}
                       </TableCell>
-                      <TableCell className="tabular-nums">
-                        {li.includedVisits}/yr
-                      </TableCell>
-                      <TableCell className="text-sm">{li.partsCoverage}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {li.sla}
+                      <TableCell>
+                        {cov.includesLabor ? (
+                          <CheckCircle2 className="size-4 text-success" />
+                        ) : (
+                          <XCircle className="size-4 text-muted-foreground" />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
+                  {allCoverage.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                        No equipment coverage configured yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* PM Plans */}
+        {/* ── Tab: PM Plans ── */}
         <TabsContent value="pm-plans" className="space-y-4">
           <Card className="border-primary/20 bg-primary/[0.03]">
             <CardContent className="flex items-start gap-3 p-4">
@@ -357,9 +514,9 @@ export function ContractsContent() {
               <div className="text-sm">
                 <p className="font-medium">Preventive maintenance originates here</p>
                 <p className="text-muted-foreground">
-                  PM Plans are derived from active contracts. They are architected
-                  to automatically generate Service Orders when due — generation is
-                  prepared but not yet enabled.
+                  PM Plans are derived from active contracts. Each covered equipment model
+                  with PM visits &gt; 0 generates a plan. Automatic Service Order generation
+                  is planned for a future release.
                 </p>
               </div>
             </CardContent>
@@ -370,92 +527,73 @@ export function ContractsContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Plan Type</TableHead>
+                    <TableHead>Equipment Model</TableHead>
+                    <TableHead>Coverage Type</TableHead>
                     <TableHead>Origin Contract</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Last Service</TableHead>
-                    <TableHead>Next Due</TableHead>
-                    <TableHead>Upcoming</TableHead>
+                    <TableHead>PM Visits/yr</TableHead>
+                    <TableHead>SLA Response</TableHead>
+                    <TableHead>Contract Ends</TableHead>
                     <TableHead>Generation</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pmPlans.map((plan) => {
-                    const remaining = daysUntil(plan.nextDueDate)
-                    const due = isDueForGeneration(plan, 30)
+                    const days = daysUntil(plan.contractEndDate)
+                    const expiringSoonPlan = days >= 0 && days <= 90
                     return (
                       <TableRow key={plan.id}>
-                        <TableCell className="font-medium">
-                          {plan.equipmentName}
+                        <TableCell>
+                          <div>
+                            <p className="text-sm font-medium">{plan.modelName}</p>
+                            <p className="text-xs text-muted-foreground">{plan.manufacturer}</p>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge
                             className={
-                              plan.planType === 'Calibration'
+                              plan.coverageType === 'CORRECTIVE_ONLY'
                                 ? 'bg-warning/10 text-warning'
                                 : 'bg-success/10 text-success'
                             }
                           >
-                            {plan.planType === 'Calibration'
-                              ? 'Calibration'
-                              : 'Preventive'}
+                            {coverageLabels[plan.coverageType] ?? plan.coverageType}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">
-                            <p className="font-mono">{plan.contractNumber}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {plan.customerName}
-                            </p>
+                          <div>
+                            <p className="font-mono text-xs">{plan.contractNumber}</p>
+                            <p className="text-xs text-muted-foreground">{plan.clientName}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{plan.frequency}</Badge>
+                        <TableCell className="tabular-nums text-sm">
+                          {plan.pmVisitsPerYear}/yr
                         </TableCell>
-                        <TableCell className="text-sm tabular-nums text-muted-foreground">
-                          {plan.lastServiceDate ?? 'No service yet'}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {plan.slaHours}h
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <p className="tabular-nums">{plan.nextDueDate}</p>
-                            <p
-                              className={cn(
-                                'text-xs',
-                                remaining <= 14
-                                  ? 'text-destructive'
-                                  : remaining <= 30
-                                    ? 'text-warning'
-                                    : 'text-muted-foreground',
-                              )}
-                            >
-                              {remaining > 0 ? `in ${remaining} days` : 'overdue'}
-                            </p>
+                            <p>{new Date(plan.contractEndDate).toLocaleDateString('en-US')}</p>
+                            {expiringSoonPlan && (
+                              <p className="text-xs text-warning">{days}d left</p>
+                            )}
                           </div>
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {plan.upcomingPmCount}
-                        </TableCell>
                         <TableCell>
-                          {!plan.autoGenerateEnabled ? (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Manual
-                            </Badge>
-                          ) : due ? (
-                            <Badge className="bg-primary/10 text-primary">
-                              <CalendarClock className="mr-1 size-3" />
-                              Due for SO
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-success">
-                              <CheckCircle2 className="mr-1 size-3" />
-                              Scheduled
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className="text-muted-foreground text-xs">
+                            Manual
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     )
                   })}
+                  {pmPlans.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                        No active PM plans. Create a contract with PM visits to generate plans.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -463,32 +601,74 @@ export function ContractsContent() {
         </TabsContent>
       </Tabs>
 
-      {/* Upcoming PM generation alert */}
-      {dueSoon.length > 0 && (
+      {/* PM Plans due soon alert — igual que el original */}
+      {dueSoon && (
         <Card className="border-primary/40 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
-                <ClipboardList className="mt-0.5 size-5 text-primary" />
+                <ClipboardList className="mt-0.5 size-5 text-primary shrink-0" />
                 <div>
                   <p className="font-medium">
-                    {dueSoon.length} PM plan{dueSoon.length > 1 ? 's' : ''} due within
-                    30 days
+                    {expiringSoon} contract{expiringSoon > 1 ? 's' : ''} expiring within 90 days
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    These obligations will generate Service Orders once automatic
-                    generation is enabled. Review the PM Plans tab to schedule.
+                    Review contracts before expiration to ensure service continuity.
+                    Consider renewal or extension negotiations.
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                Review Plans
+              <Button variant="outline" size="sm" onClick={() => setStatusFilter('ACTIVE')}>
+                Review
                 <ArrowRight className="ml-2 size-4" />
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Dialogs */}
+      <AddContractDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        organizations={organizations}
+        equipmentByOrg={equipmentByOrg}
+      />
+
+      <ContractDetailSheet
+        contract={activeContract}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onDelete={(c) => {
+          setDetailOpen(false)
+          setContractToDelete(c)
+        }}
+      />
+
+      <AlertDialog
+        open={!!contractToDelete}
+        onOpenChange={(o) => { if (!o) setContractToDelete(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete contract {contractToDelete?.contractNumber}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

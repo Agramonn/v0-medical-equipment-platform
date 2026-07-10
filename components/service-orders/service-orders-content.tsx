@@ -65,7 +65,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
-import { ServiceOrderWithRelations, EquipmentOption } from '@/lib/types'
+import { ServiceOrderWithRelations, EquipmentOption, ChecklistTemplate } from '@/lib/types'
 import { CreateServiceOrderWizard } from './create-service-order-wizard'
 import { PriorityBadge, StatusBadge, TypeBadge } from './service-order-badges'
 import { ServiceOrderDetailSheet } from './service-order-detail-sheet'
@@ -101,11 +101,13 @@ export function ServiceOrdersContent({
   equipmentList,
   engineers,
   currentUserId,
+  allTemplates,
 }: {
   orders: ServiceOrderWithRelations[]
   equipmentList: EquipmentOption[]
   engineers: EngineerOption[]
   currentUserId: string
+  allTemplates: ChecklistTemplate[]
 }) {
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [typeFilter, setTypeFilter] = React.useState<string>('all')
@@ -120,6 +122,21 @@ export function ServiceOrdersContent({
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false)
   const [orderToCancel, setOrderToCancel] = React.useState<ServiceOrderWithRelations | null>(null)
   const [isCancelling, setIsCancelling] = React.useState(false)
+  const [templates, setTemplates] = React.useState<ChecklistTemplate[]>(
+    allTemplates ?? []
+  )
+
+  // Al abrir el detail sheet, encuentra el template del modelo del equipo de esa orden:
+  function getTemplateForOrder(order: ServiceOrderWithRelations): ChecklistTemplate | null {
+    return (
+      templates.find(
+        (t) =>
+          t.serviceType === order.type &&
+          // Match by equipmentModelId — necesitas aggregarlo en la query
+          true
+      ) ?? null
+    )
+  }
 
   function openDetail(order: ServiceOrderWithRelations) {
     setActiveOrder(order)
@@ -495,6 +512,7 @@ export function ServiceOrdersContent({
       />
       <ServiceOrderDetailSheet
         order={activeOrder}
+        template={activeOrder ? getTemplateForOrder(activeOrder) : null}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         currentUserId={currentUserId}

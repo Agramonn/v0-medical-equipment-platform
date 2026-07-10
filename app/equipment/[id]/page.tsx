@@ -1,41 +1,64 @@
 import { notFound } from 'next/navigation'
 import { AppLayout } from '@/components/app-layout'
-import { getCurrentUser } from '@/lib/get-current-user'
 import { EquipmentWorkspace } from '@/components/equipment/equipment-workspace'
 import { db } from '@/lib/db'
-import { EquipmentWithDetails } from '@/lib/types'
+import { getCurrentUser } from '@/lib/get-current-user'
+import { EquipmentWithDetails, ChecklistTemplate } from '@/lib/types'
 
 async function getEquipment(id: string): Promise<EquipmentWithDetails | null> {
   const equipment = await db.equipment.findUnique({
     where: { id },
     include: {
       organization: true,
-      equipmentModel: true,
       serviceHistory: {
         include: {
-          engineer: {
-            select: { id: true, name: true },
-          },
+          engineer: { select: { id: true, name: true } },
         },
         orderBy: { date: 'desc' },
       },
+      equipmentModel: {
+        include: {
+          manuals: { orderBy: { name: 'asc' } },
+          spareParts: { orderBy: { description: 'asc' } },
+          contractCoverage: {
+            include: {
+              contract: {
+                select: {
+                  id: true,
+                  contractNumber: true,
+                  type: true,
+                  status: true,
+                  endDate: true,
+                  client: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   })
-
   return equipment as unknown as EquipmentWithDetails | null
 }
 
 async function getServiceOrdersForEquipment(equipmentId: string) {
-  const orders = await db.serviceOrder.findMany({
+  return db.serviceOrder.findMany({
     where: { equipmentId },
     include: {
       equipment: {
         select: {
           id: true,
-          equipmentModel: true,
           serialNumber: true,
           assetNumber: true,
           department: true,
+          equipmentModel: {
+            select: {
+              id: true,
+              name: true,
+              manufacturer: true,
+              model: true,
+            },
+          },
         },
       },
       organization: { select: { id: true, name: true } },
@@ -48,20 +71,40 @@ async function getServiceOrdersForEquipment(equipmentId: string) {
         orderBy: { createdAt: 'asc' },
       },
     },
+    orderBy: { createdAt: 'desc' },
   })
+}
 
-  return orders
+async function getChecklistTemplates(
+  equipmentModelId: string
+): Promise<ChecklistTemplate[]> {
+  const templates = await db.checklistTemplate.findMany({
+    where: { equipmentModelId },
+    include: {
+      items: { orderBy: { order: 'asc' } },
+    },
+  })
+  return templates as ChecklistTemplate[]
 }
 
 async function getEquipmentListForWizard() {
   return db.equipment.findMany({
     select: {
-      equipmentModel: true,
       id: true,
       serialNumber: true,
       assetNumber: true,
       department: true,
       organizationId: true,
+      equipmentModelId: true,
+      equipmentModel: {
+        select: {
+          id: true,
+          name: true,
+          manufacturer: true,
+          model: true,
+          category: true,
+        },
+      },
       organization: { select: { name: true } },
     },
     orderBy: { equipmentModel: { name: 'asc' } },
@@ -76,29 +119,34 @@ async function getEngineers() {
   })
 }
 
-export default async function EquipmentPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EquipmentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = await params
   const user = await getCurrentUser()
   const equipment = await getEquipment(id)
 
-  if (!equipment) {
-    notFound()
-  }
+  if (!equipment) notFound()
 
-  const [serviceOrders, equipmentList, engineers] = await Promise.all([
+  const [serviceOrders, equipmentList, engineers, templates] = await Promise.all([
     getServiceOrdersForEquipment(id),
     getEquipmentListForWizard(),
     getEngineers(),
+    getChecklistTemplates(equipment.equipmentModel.id),
   ])
 
   return (
     <AppLayout user={user}>
       <EquipmentWorkspace
         equipment={equipment}
-        serviceOrders={serviceOrders}
+        serviceOrders={serviceOrders as any}
         equipmentList={equipmentList}
         engineers={engineers}
         currentUserId={user.id}
+        currentUserRole={user.role as 'SUPERVISOR' | 'ENGINEER'}
+        checklistTemplates={templates}
       />
     </AppLayout>
   )

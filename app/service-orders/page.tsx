@@ -2,6 +2,7 @@ import { AppLayout } from '@/components/app-layout'
 import { ServiceOrdersContent } from '@/components/service-orders/service-orders-content'
 import { db } from '@/lib/db'
 import { ServiceOrderWithRelations } from '@/lib/types'
+import { getCurrentUser } from '@/lib/get-current-user'
 
 async function getServiceOrders(): Promise<ServiceOrderWithRelations[]> {
   const orders = await db.serviceOrder.findMany({
@@ -53,14 +54,22 @@ async function getEngineers() {
   })
 }
 
-import { getCurrentUser } from '@/lib/get-current-user'
+async function getChecklistTemplatesByModel() {
+  const templates = await db.checklistTemplate.findMany({
+    include: {
+      items: { orderBy: { order: 'asc' } },
+    },
+  })
+  return templates
+}
 
 export default async function ServiceOrdersPage() {
-  const user = await getCurrentUser()
-  const [orders, equipmentList, engineers] = await Promise.all([
+  const [user, orders, equipmentList, engineers, allTemplates] = await Promise.all([
+    getCurrentUser(),
     getServiceOrders(),
     getEquipmentList(),
     getEngineers(),
+    getChecklistTemplatesByModel(),
   ])
 
   return (
@@ -70,6 +79,7 @@ export default async function ServiceOrdersPage() {
         equipmentList={equipmentList}
         engineers={engineers}
         currentUserId={user.id}
+        allTemplates={allTemplates as any}
       />
     </AppLayout>
   )

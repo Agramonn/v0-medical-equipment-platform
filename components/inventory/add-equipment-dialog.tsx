@@ -72,7 +72,6 @@ export function AddEquipmentDialog({
   const [organizationId, setOrganizationId] = React.useState('')
   const [department, setDepartment] = React.useState('')
   const [location, setLocation] = React.useState('')
-  const [contractType, setContractType] = React.useState('')
 
   const filteredModels = React.useMemo(() => {
     if (!modelQuery) return equipmentModels
@@ -101,7 +100,6 @@ export function AddEquipmentDialog({
     setOrganizationId('')
     setDepartment('')
     setLocation('')
-    setContractType('')
     setError(null)
   }
 
@@ -153,7 +151,6 @@ export function AddEquipmentDialog({
         organizationId,
         department,
         location,
-        contractType,
         units,
       })
       handleOpenChange(false)
@@ -420,29 +417,22 @@ export function AddEquipmentDialog({
                 </Select>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Department *</Label>
-                  <Input
-                    placeholder="ICU"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contract Type</Label>
-                  <Select value={contractType} onValueChange={setContractType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select contract" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full Service">Full Service</SelectItem>
-                      <SelectItem value="Preventive Only">Preventive Only</SelectItem>
-                      <SelectItem value="Parts Only">Parts Only</SelectItem>
-                      <SelectItem value="Warranty">Warranty</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Department *</Label>
+                <Input
+                  placeholder="ICU"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                />
+              </div>
+
+              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Contract coverage</p>
+                <p className="mt-0.5">
+                  Assign this equipment to a contract from the{' '}
+                  <span className="font-medium text-primary">Contracts</span> module after
+                  registering it here. Contract coverage is managed at the model level, not per unit.
+                </p>
               </div>
 
               <div className="space-y-2">

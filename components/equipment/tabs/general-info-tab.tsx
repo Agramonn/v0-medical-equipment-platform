@@ -254,7 +254,7 @@ export function GeneralInfoTab({ equipment }: { equipment: EquipmentWithDetails 
 
         {/* Recent activity + contract summary */}
         <div className="space-y-6">
-          <ContractSummary contractType={equipment.contractType} />
+          <ContractSummary coverage={equipment.equipmentModel.contractCoverage} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Recent Activity</CardTitle>
