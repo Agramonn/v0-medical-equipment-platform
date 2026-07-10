@@ -38,11 +38,6 @@ import {
   type ServiceOrder,
   type ServiceOrderStatus,
 } from '@/lib/service-order-data'
-import {
-  PriorityBadge,
-  StatusBadge,
-  TypeBadge,
-} from '@/components/service-orders/service-order-badges'
 
 // Engineers can move an order through execution states, but they can NEVER
 // close it. They submit completed work for supervisor review.
@@ -50,6 +45,42 @@ type EngineerStatus = Extract<
   ServiceOrderStatus,
   'assigned' | 'in-progress' | 'pending-parts' | 'pending-customer' | 'completed'
 >
+
+// Local badges for the legacy mock model (lib/service-order-data.ts), which
+// uses lowercase-hyphenated status/priority/type values. The shared badges in
+// service-order-badges.tsx are for the Prisma model (uppercase enums) and are
+// not type-compatible with this panel yet.
+const mockStatusLabels: Record<ServiceOrderStatus, string> = {
+  draft: 'Draft',
+  assigned: 'Assigned',
+  'in-progress': 'In Progress',
+  'pending-parts': 'Pending Parts',
+  'pending-customer': 'Pending Customer',
+  completed: 'Completed',
+  'pending-signature': 'Pending Signature',
+  closed: 'Closed',
+}
+
+function StatusBadge({ status }: { status: ServiceOrderStatus }) {
+  return <Badge variant="secondary">{mockStatusLabels[status]}</Badge>
+}
+
+function PriorityBadge({ priority }: { priority: ServiceOrder['priority'] }) {
+  switch (priority) {
+    case 'critical':
+      return <Badge variant="destructive">Critical</Badge>
+    case 'high':
+      return <Badge className="bg-warning text-warning-foreground">High</Badge>
+    case 'medium':
+      return <Badge variant="secondary">Medium</Badge>
+    default:
+      return <Badge variant="outline">Low</Badge>
+  }
+}
+
+function TypeBadge({ type }: { type: ServiceOrder['type'] }) {
+  return <Badge variant="outline">{type}</Badge>
+}
 
 export function EngineerServicePanel({
   order,
