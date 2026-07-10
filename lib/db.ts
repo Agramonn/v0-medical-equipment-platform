@@ -16,14 +16,27 @@ function createPrismaClient() {
   return new PrismaClient({ adapter } as any)
 }
 
-// Lazily instantiate the client on first use so the connection string is read
-// after environment variables are fully loaded (avoids dev-startup timing issues).
+// Single, cached PrismaClient instance for the whole process.
+//
+// IMPORTANT: We cache in BOTH development and production. Creating a new
+// PrismaClient (each one opens its own Neon connection pool + WebSocket) on
+// every access leaks connections and memory, which can crash the process with
+// "JavaScript heap out of memory" during `next build`/`next start`.
+//
+// In development we also stash it on `globalThis` so hot-reload doesn't create
+// a new client on every file change.
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient()
+  }
+  return globalForPrisma.prisma
+}
+
+// A thin proxy so the client is created lazily on first use (after env vars are
+// loaded), but only ONCE. Every property access reuses the same instance.
 export const db: PrismaClient = new Proxy({} as PrismaClient, {
   get(_target, prop, receiver) {
-    const client = globalForPrisma.prisma ?? createPrismaClient()
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = client
-    }
+    const client = getPrismaClient()
     const value = Reflect.get(client, prop, receiver)
     return typeof value === 'function' ? value.bind(client) : value
   },
