@@ -44,7 +44,9 @@ import {
 } from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { ServiceHistoryWithRelations } from '@/app/history/page'
+import { ServiceHistoryWithRelations, EquipmentOption } from '@/app/history/page'
+import { AddHistoryDialog } from '@/components/history/add-history-dialog'
+import { backfillServiceHistory } from '@/lib/actions/service-history'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -201,11 +203,37 @@ function HistoryDetailCard({ record }: { record: ServiceHistoryWithRelations }) 
 export function HistoryContent({
   history,
   engineers,
+  equipmentOptions,
+  canManage,
+  pendingBackfill,
 }: {
   history: ServiceHistoryWithRelations[]
   engineers: { id: string; name: string }[]
+  equipmentOptions: EquipmentOption[]
+  canManage: boolean
+  pendingBackfill: number
 }) {
   const [search, setSearch] = React.useState('')
+  const [isBackfilling, setIsBackfilling] = React.useState(false)
+  const [backfillMsg, setBackfillMsg] = React.useState<string | null>(null)
+
+  async function handleBackfill() {
+    setIsBackfilling(true)
+    setBackfillMsg(null)
+    try {
+      const result = await backfillServiceHistory()
+      setBackfillMsg(
+        result.created > 0
+          ? `${result.created} record(s) generated from closed orders.`
+          : 'All closed orders already have history records.',
+      )
+    } catch (e) {
+      setBackfillMsg(e instanceof Error ? e.message : 'Backfill failed.')
+    } finally {
+      setIsBackfilling(false)
+    }
+  }
+
   const [typeFilter, setTypeFilter] = React.useState('all')
   const [engineerFilter, setEngineerFilter] = React.useState('all')
   const [equipmentFilter, setEquipmentFilter] = React.useState('all')
@@ -337,11 +365,33 @@ export function HistoryContent({
             Complete service records and technical analysis across all equipment.
           </p>
         </div>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 size-4" />
-          Export
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canManage && pendingBackfill > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackfill}
+              disabled={isBackfilling}
+            >
+              <RefreshCw className={cn('mr-2 size-4', isBackfilling && 'animate-spin')} />
+              {isBackfilling ? 'Syncing...' : `Sync ${pendingBackfill} closed order(s)`}
+            </Button>
+          )}
+          {canManage && (
+            <AddHistoryDialog engineers={engineers} equipmentOptions={equipmentOptions} />
+          )}
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 size-4" />
+            Export
+          </Button>
+        </div>
       </div>
+
+      {backfillMsg && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm">
+          {backfillMsg}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

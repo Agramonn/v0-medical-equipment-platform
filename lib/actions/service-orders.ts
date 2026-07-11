@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { ChecklistResponse, ChecklistItemResponse } from '@/lib/types'
+import { createHistoryFromOrder } from '@/lib/actions/service-history'
 
 export async function createServiceOrder(formData: FormData) {
   const session = await auth()
@@ -435,9 +436,14 @@ export async function approveAndCloseOrder(orderId: string) {
     data: { lastServiceDate: new Date() },
   })
 
+  // Generate the permanent technical history record from the closed order.
+  // This is the direct link between Service Orders and the History section.
+  await createHistoryFromOrder(order.id)
+
   revalidatePath('/service-orders')
   revalidatePath(`/equipment/${order.equipmentId}`)
   revalidatePath('/inventory')
+  revalidatePath('/history')
 }
 
 // ── Auto-generate PM Service Orders ──────────────────────────────────────────
