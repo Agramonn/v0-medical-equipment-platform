@@ -44,3 +44,8 @@
         }),
     ],
     })
+
+    console.log({
+  AUTH_SECRET: process.env.AUTH_SECRET,
+  DATABASE_URL: !!process.env.DATABASE_URL,
+})
