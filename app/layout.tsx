@@ -5,6 +5,11 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
+// Toda la app está detrás de autenticación y lee datos en vivo de la base de
+// datos, así que se renderiza por request (no se prerenderiza en el build).
+// Esto también evita que el build necesite acceso a la base de datos.
+export const dynamic = 'force-dynamic'
+
 const geistSans = Geist({
   subsets: ['latin'],
   variable: '--font-geist-sans',
