@@ -1,6 +1,10 @@
 import type { NextAuthConfig } from 'next-auth'
 
 export const authConfig: NextAuthConfig = {
+    // Necesario cuando la app corre detrás de un proxy (preview de v0, Vercel,
+    // etc.). Hace que Auth.js confíe en los headers de host reenviados en lugar
+    // de asumir localhost:3000, lo que corrige los callbackUrl del login.
+    trustHost: true,
     pages: {
         signIn: '/login',
     },
