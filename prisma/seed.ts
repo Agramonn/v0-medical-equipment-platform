@@ -11,13 +11,9 @@ import {
 } from '../lib/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import bcrypt from 'bcryptjs'
+import { requireDatabaseUrl } from '../lib/env'
 
-const connectionString = process.env.DATABASE_URL!
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not defined in .env')
-}
-
-const adapter = new PrismaNeon({ connectionString })
+const adapter = new PrismaNeon({ connectionString: requireDatabaseUrl() })
 const prisma = new PrismaClient({ adapter } as any)
 
 async function hashPassword(password: string) {

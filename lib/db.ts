@@ -1,33 +1,41 @@
 import { PrismaClient } from '../lib/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
+import { requireDatabaseUrl } from './env'
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL
-
-  if (!connectionString) {
-    throw new Error(
-      'DATABASE_URL is not set. Connect the Neon integration and make sure the environment variable is available.',
-    )
-  }
-
-  const adapter = new PrismaNeon({ connectionString })
+  const adapter = new PrismaNeon({ connectionString: requireDatabaseUrl() })
   return new PrismaClient({ adapter })
 }
 
-// Reuse a single PrismaClient across the whole process.
+// Reutilizamos un único PrismaClient en todo el proceso.
 //
-// Each PrismaClient opens its own Neon connection pool, so creating one per
-// request (or, worse, per property access) leaks connections and memory and
-// can crash the process with "JavaScript heap out of memory".
+// Cada PrismaClient abre su propio pool de conexiones a Neon, así que crear uno
+// por request (o, peor, por cada acceso a una propiedad) fuga conexiones y
+// memoria, y puede tumbar el proceso con "JavaScript heap out of memory".
 //
-// In development we also stash the instance on `globalThis` so Next.js hot
-// reload does not spin up a new client on every file change.
+// Lo guardamos en `globalThis` para que:
+//   - En desarrollo, el hot reload de Next.js no cree un cliente nuevo en cada
+//     cambio de archivo.
+//   - En producción, se reutilice la misma instancia durante toda la vida del
+//     proceso.
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const db = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = db
+function getClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient()
+  }
+  return globalForPrisma.prisma
 }
+
+// Proxy perezoso: el PrismaClient se crea en el primer uso real (una consulta),
+// no al importar el módulo. Así `next build` puede recolectar datos de página
+// sin necesitar la base de datos, y seguimos reutilizando un único cliente.
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getClient()
+    const value = Reflect.get(client, prop, receiver)
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+})
